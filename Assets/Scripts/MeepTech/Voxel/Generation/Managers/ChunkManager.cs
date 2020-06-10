@@ -27,6 +27,33 @@ namespace MeepTech.Voxel.Generation.Managers {
     }
 
     /// <summary>
+    /// Stop all loading, jobs, management, etc.
+    /// </summary>
+    public abstract void killAll();
+
+    /// <summary>
+    /// Children should be observers
+    /// </summary>
+    /// <param name="event"></param>
+    /// <param name="origin"></param>
+    public virtual void notifyOf(IEvent @event, IObserver origin = null) {
+      switch(@event) {
+        case KillAllChunkManagementEventsEvent _:
+          killAll();
+          break;
+        default:
+          return;
+      }
+    }
+
+#if DEBUG
+    /// <summary>
+    /// Provide your stats as an array
+    /// </summary>
+    /// <returns></returns>
+    protected abstract (double, string)[] provideManagerStats();
+
+    /// <summary>
     /// Get a readout of the current stats of this manager
     /// </summary>
     /// <returns></returns>
@@ -41,18 +68,17 @@ namespace MeepTech.Voxel.Generation.Managers {
 
       return statText;
     }
+#endif
 
     /// <summary>
-    /// Children should be observers
+    /// An event to kill all chunk managers
     /// </summary>
-    /// <param name="event"></param>
-    /// <param name="origin"></param>
-    public virtual void notifyOf(IEvent @event, IObserver origin = null) { }
+    public class KillAllChunkManagementEventsEvent : IEvent {
 
-    /// <summary>
-    /// Provide your stats as an array
-    /// </summary>
-    /// <returns></returns>
-    protected abstract (double, string)[] provideManagerStats(); 
+      /// <summary>
+      /// The name of this event
+      /// </summary>
+      public string name => "Killing all chunk managers";
+    }
   }
 }

@@ -7,9 +7,16 @@ namespace MeepTech.Voxel.Generation.Managers {
   public interface IChunkManager : IObserver {
 
     /// <summary>
+    /// Kill all loading or jobs managemed by this manager.
+    /// </summary>
+    void killAll();
+
+#if DEBUG
+    /// <summary>
     /// Get the current stats of the manager
     /// </summary>
     /// <returns></returns>
     string getCurrentStats();
+#endif
   }
 }

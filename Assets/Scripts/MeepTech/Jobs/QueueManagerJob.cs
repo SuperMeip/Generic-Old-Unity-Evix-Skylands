@@ -196,6 +196,15 @@ namespace MeepTech.Jobs {
     }
 
     /// <summary>
+    /// Move the current front item to the end of the queue
+    /// </summary>
+    protected void moveItemToEndOfQueue() {
+      if (queue.TryDequeue(out QueueItemType queueItem)) {
+        queue.Enqueue(queueItem);
+      }
+    }
+
+    /// <summary>
     /// validate queue items
     /// </summary>
     /// <param name="queueItem"></param>

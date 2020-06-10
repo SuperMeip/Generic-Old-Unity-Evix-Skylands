@@ -20,6 +20,7 @@ namespace MeepTech.Voxel.Generation.Managers {
     /// </summary>
     JGenerateChunkMeshes chunkMeshGenQueueManagerJob;
 
+#if DEBUG
     ///// MANAGER STATS
     int totalRequestsRecieved = 0;
     internal int chunksDroppedForOurOfFocus = 0;
@@ -29,6 +30,7 @@ namespace MeepTech.Voxel.Generation.Managers {
     internal int jobsDroppedMeshAlreadyExists = 0;
     internal int chunkMeshesGeneraged = 0;
     internal int generatedEmptyMeshes = 0;
+#endif
 
     /// <summary>
     /// construct
@@ -47,13 +49,24 @@ namespace MeepTech.Voxel.Generation.Managers {
         // if chunk data wasn't found in a file, lets generate it for them
         case ChunkFileDataLoadingManager<VoxelFlatArray>.ChunkDataLoadingFinishedEvent cfdlmcdlfe:
           chunkMeshGenQueueManagerJob.enQueue(new Coordinate[] { cfdlmcdlfe.chunkLocation });
+#if DEBUG
           Interlocked.Increment(ref totalRequestsRecieved);
+#endif
           break;
         default:
           return;
       }
+      base.notifyOf(@event, origin);
     }
 
+    /// <summary>
+    /// Abort the manager jobs
+    /// </summary>
+    public override void killAll() {
+      chunkMeshGenQueueManagerJob.abort();
+    }
+
+#if DEBUG
     /// <summary>
     /// Manager stats
     /// </summary>
@@ -71,6 +84,7 @@ namespace MeepTech.Voxel.Generation.Managers {
         (chunkMeshGenQueueManagerJob.queueCount, "Currently Queued Items")
       };
     }
+#endif
   }
 
   /// <summary>
@@ -103,13 +117,17 @@ namespace MeepTech.Voxel.Generation.Managers {
     /// <returns></returns>
     protected override bool isAValidQueueItem(Coordinate chunkLocation) {
       if (!level.chunkIsWithinLoadedBounds(chunkLocation)) {
+#if DEBUG
         Interlocked.Increment(ref manager.chunksDroppedForOurOfFocus);
+#endif
         return false;
       }
       IVoxelChunk chunk = level.getChunk(chunkLocation);
       // the chunk can't be loaded and empty, we'll generate nothing.
       if ((chunk.isLoaded && chunk.isEmpty)) {
+#if DEBUG
         Interlocked.Increment(ref manager.chunksDroppedForBeingEmpty);
+#endif
         return false;
       }
 
@@ -125,15 +143,19 @@ namespace MeepTech.Voxel.Generation.Managers {
       if (level.chunkIsWithinkMeshedBounds(chunkLocation)) {
         IVoxelChunk chunk = level.getChunk(chunkLocation, false, true, true, true);
         return chunk.isLoaded && chunk.neighborsNeighborsAreLoaded;
-      } else return false;
+      } else {
+        moveItemToEndOfQueue();
+        return false;
+      }
     }
 
     /// <summary>
     /// Sort the queue by distance from the focus of the level
     /// </summary>
     protected override void sortQueue() {
-      Coordinate[] sortedQueue = queue.OrderBy(o => o.distance(level.focus)).ToArray();
-      queue = new ConcurrentQueue<Coordinate>(sortedQueue);
+      //Coordinate[] sortedQueue = queue.OrderBy(o => o.distance(level.focus)).ToArray();
+      //lock (queue)
+      //queue = new ConcurrentQueue<Coordinate>(sortedQueue);
     }
 
     /// <summary>
@@ -163,23 +185,30 @@ namespace MeepTech.Voxel.Generation.Managers {
       /// generate the chunk mesh if the level doesn't have it yet.
       /// </summary>
       protected override void doWork(Coordinate chunkLocation) {
+#if DEBUG
         Interlocked.Increment(ref jobManager.manager.requestsProcessedByJobs);
+#endif
         if (!jobManager.manager.chunkDataStorage.containsChunkMesh(chunkLocation)) {
           IMesh mesh = jobManager.manager.generateMeshDataForChunk(chunkLocation);
+#if DEBUG
           Interlocked.Increment(ref jobManager.manager.chunkMeshesGeneraged);
+#endif
           if (!mesh.isEmpty) {
             jobManager.manager.chunkDataStorage.setChunkMesh(chunkLocation, mesh);
             World.EventSystem.notifyChannelOf(
               new ChunkMeshGenerationFinishedEvent(chunkLocation),
               Evix.EventSystems.WorldEventSystem.Channels.TerrainGeneration
             );
-          } else {
+          }
+#if DEBUG
+          else {
             Interlocked.Increment(ref jobManager.manager.generatedEmptyMeshes);
           }
           Interlocked.Increment(ref jobManager.manager.requestsSucessfullyProcessedByJobs);
         } else {
           Interlocked.Increment(ref jobManager.manager.jobsDroppedMeshAlreadyExists);
         }
+#endif
       }
     }
   }

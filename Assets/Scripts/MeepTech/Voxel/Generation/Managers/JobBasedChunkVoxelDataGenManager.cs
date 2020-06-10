@@ -3,7 +3,6 @@ using MeepTech.GamingBasics;
 using MeepTech.Voxel.Collections.Level;
 using MeepTech.Voxel.Collections.Storage;
 using MeepTech.Voxel.Generation.Sources;
-using System;
 using System.Threading;
 
 namespace MeepTech.Voxel.Generation.Managers {
@@ -20,6 +19,7 @@ namespace MeepTech.Voxel.Generation.Managers {
     /// </summary>
     JGenerateChunks chunkGenerationJobManager;
 
+#if DEBUG
     ///// MANAGER STATS
     int totalRequestsRecieved = 0;
     int chunksDroppedForOurOfFocus = 0;
@@ -28,6 +28,7 @@ namespace MeepTech.Voxel.Generation.Managers {
     internal int alreadyNonEmptyChunksDropped = 0;
     internal int chunkDataGeneratedFromSource = 0;
     internal int generatedEmptyChunks = 0;
+#endif
 
     /// <summary>
     /// Construct
@@ -47,13 +48,24 @@ namespace MeepTech.Voxel.Generation.Managers {
         // if chunk data wasn't found in a file, lets generate it for them
         case ChunkFileDataLoadingManager<VoxelFlatArray>.ChunkDataNotFoundInFilesEvent cfdlmcdnfife:
           chunkGenerationJobManager.enQueue(new Coordinate[] { cfdlmcdnfife.chunkLocation });
+#if DEBUG
           Interlocked.Increment(ref totalRequestsRecieved);
+#endif
           break;
         default:
           return;
       }
+      base.notifyOf(@event, origin);
     }
 
+    /// <summary>
+    /// Abort the manager jobs
+    /// </summary>
+    public override void killAll() {
+      chunkGenerationJobManager.abort();
+    }
+
+#if DEBUG
     /// <summary>
     /// Manager stats
     /// </summary>
@@ -70,6 +82,7 @@ namespace MeepTech.Voxel.Generation.Managers {
         (chunkGenerationJobManager.queueCount, "Currently Queued Items")
       };
     }
+#endif
 
     /// <summary>
     /// A job to load all chunks from the loading queue
@@ -103,7 +116,9 @@ namespace MeepTech.Voxel.Generation.Managers {
         if (level.chunkIsWithinLoadedBounds(chunkLocation)) {
           return true;
         } else {
+#if DEBUG
           Interlocked.Increment(ref manager.chunksDroppedForOurOfFocus);
+#endif
           return false;
         }
       }
@@ -136,25 +151,35 @@ namespace MeepTech.Voxel.Generation.Managers {
         /// Threaded function, loads all the voxel data for this chunk
         /// </summary>
         protected override void doWork(Coordinate chunkLocation) {
+#if DEBUG
           Interlocked.Increment(ref jobManager.manager.requestsProcessedByJobs);
+#endif
           // if the chunk is empty, lets try to fill it.
           if (jobManager.level.getChunk(chunkLocation).isEmpty) {
             VoxelStorageType voxelData = jobManager.manager.generateVoxelDataForChunk(chunkLocation);
             jobManager.manager.chunkDataStorage.setChunkVoxelData(chunkLocation, voxelData);
+#if DEBUG
             Interlocked.Increment(ref jobManager.manager.chunkDataGeneratedFromSource);
+#endif
             if (!voxelData.isEmpty) {
               World.EventSystem.notifyChannelOf(
                 new ChunkFileDataLoadingManager<VoxelStorageType>.ChunkDataLoadingFinishedEvent(chunkLocation),
                 Evix.EventSystems.WorldEventSystem.Channels.TerrainGeneration
               );
-            } else {
+            }
+#if DEBUG
+            else {
               Interlocked.Increment(ref jobManager.manager.generatedEmptyChunks);
             }
             Interlocked.Increment(ref jobManager.manager.requestsSucessfullyProcessedByJobs);
-          } else {
+#endif
+          }
+#if DEBUG
+          else {
             Interlocked.Increment(ref jobManager.manager.alreadyNonEmptyChunksDropped);
             World.Debugger.log($"Tried to generate the voxels for an empty chunk: {chunkLocation.ToString()}");
           }
+#endif
         }
       }
     }

@@ -12,7 +12,7 @@ namespace MeepTech.Voxel.Collections.Level {
     /// <summary>
     /// The voxel diameter, x y and z, of a chunk in this level
     /// </summary>
-    public const int Diameter = 25;
+    public const int Diameter = 64;
 
     /// <summary>
     /// if this storage set is empty of voxels

@@ -31,7 +31,7 @@ namespace MeepTech.Voxel.Collections.Level {
     /// </summary>
     public int meshedChunkDiameter {
       get;
-    } = 20;
+    } = 15;
 
     /// <summary>
     /// The buffer diameter around rendered chunks to also load into memmory
@@ -229,13 +229,12 @@ namespace MeepTech.Voxel.Collections.Level {
     }
 
     /// <summary>
-    /// Get the stats of all the managers this level uses
+    /// Stop all running chunk managers
     /// </summary>
-    /// <returns></returns>
-    public string getManagerStats() {
-      return chunkFileDataLoadingManager.getCurrentStats() + '\n'
-        + chunkVoxelDataGenerationManager.getCurrentStats() + '\n'
-        + chunkMeshGenerationManager.getCurrentStats();
+    public void stopAllManagers() {
+      chunkFileDataLoadingManager.killAll();
+      chunkVoxelDataGenerationManager.killAll();
+      chunkMeshGenerationManager.killAll();
     }
 
     /// <summary>
@@ -276,6 +275,18 @@ namespace MeepTech.Voxel.Collections.Level {
         )
       };
     }
+
+#if DEBUG
+    /// <summary>
+    /// Get the stats of all the managers this level uses
+    /// </summary>
+    /// <returns></returns>
+    public string getManagerStats() {
+      return chunkFileDataLoadingManager.getCurrentStats() + '\n'
+        + chunkVoxelDataGenerationManager.getCurrentStats() + '\n'
+        + chunkMeshGenerationManager.getCurrentStats();
+    }
+#endif
   }
 
   public static class Vector3LevelUtilities {

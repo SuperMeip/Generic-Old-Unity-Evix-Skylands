@@ -86,9 +86,18 @@
     bool chunkIsWithinkMeshedBounds(Coordinate chunkLocation);
 
     /// <summary>
+    /// Stop all running managers used to build this level
+    /// @todo, wrap this up in saveAll as part of closing.
+    /// </summary>
+    /// <returns></returns>
+    void stopAllManagers();
+
+#if DEBUG
+    /// <summary>
     /// Get stats for the managers used to build this level
     /// </summary>
     /// <returns></returns>
     string getManagerStats();
+#endif
   }
 }
