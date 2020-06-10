@@ -472,6 +472,7 @@ namespace MeepTech.Voxel {
   /// <summary>
   /// A block position in a level
   /// </summary>
+  [System.Serializable]
   public struct Coordinate : IComparable<Coordinate>, IEquatable<Coordinate> {
 
     /// <summary>
@@ -548,6 +549,14 @@ namespace MeepTech.Voxel {
     /// <param name="coordinates"></param>
     public static implicit operator Coordinate((int, int, int) coordinates) {
       return new Coordinate(coordinates.Item1, coordinates.Item2, coordinates.Item3);
+    }
+
+    /// <summary>
+    /// Turn a vector3 into a coordinate.
+    /// </summary>
+    /// <param name="coordinates"></param>
+    public static implicit operator Coordinate(Vector3 coordinate) {
+      return new Coordinate((int)coordinate.x, (int)coordinate.y, (int)coordinate.z);
     }
 
     public static Coordinate operator +(Coordinate a, Coordinate b) {

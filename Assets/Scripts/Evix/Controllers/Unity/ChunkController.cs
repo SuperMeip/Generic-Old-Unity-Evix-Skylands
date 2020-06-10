@@ -8,12 +8,12 @@ namespace Evix.Controllers.Unity {
   [RequireComponent(typeof(MeshRenderer))]
   [RequireComponent(typeof(MeshFilter))]
   [RequireComponent(typeof(MeshCollider))]
-  public class UnityChunkController : MonoBehaviour {
+  public class ChunkController : MonoBehaviour {
 
     /// <summary>
     /// The controller for the active level.
     /// </summary>
-    [HideInInspector] public UnityLevelController levelController;
+    [HideInInspector] public LevelController levelController;
 
     /// <summary>
     /// The current chunk location of the chunk this gameobject is representing.
@@ -64,9 +64,6 @@ namespace Evix.Controllers.Unity {
     public bool setChunkToRender(IVoxelChunk chunk, Vector3 chunkLevelLocation) {
       if (chunk.isLoaded && chunk.mesh != null && !chunk.isEmpty) {
         currentChunk = chunk;
-        if (chunkLevelLocation.Equals(new Vector3(42, 1, 55))) {
-          Debug.Log("test");
-        }
         chunkLocation = chunkLevelLocation;
         isMeshed = false;
 
@@ -87,7 +84,6 @@ namespace Evix.Controllers.Unity {
     /// Update the mesh for it's assigned chunk
     /// </summary>
     public void updateMeshWithChunkData() {
-      Debug.Log("New mesh created");
       currentChunkMesh = new UnityEngine.Mesh();
       currentChunkMesh.Clear();
 
@@ -102,6 +98,23 @@ namespace Evix.Controllers.Unity {
       isMeshed = true;
     }
 
+    /// <summary>
+    /// deactivate and free up this object for use again by the level controller
+    /// </summary>
+    public void deactivateAndClear() {
+      gameObject.SetActive(false);
+      currentChunkMesh = new UnityEngine.Mesh();
+      currentChunkMesh.Clear();
+
+      currentChunk = null;
+      chunkLocation = default;
+      isMeshed = false;
+      isActive = false;
+    }
+
+    /// <summary>
+    /// Free memory
+    /// </summary>
     private void OnDestroy() {
       Destroy(currentChunkMesh);
       Destroy(meshFilter.mesh);

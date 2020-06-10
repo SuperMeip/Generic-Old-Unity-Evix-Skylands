@@ -85,7 +85,7 @@ namespace MeepTech.GamingBasics {
     /// <summary>
     /// start test world
     /// </summary>
-    public static void InitializeTestWorld(UnityLevelController levelController, IVoxelSource terrainSource) {
+    public static void InitializeTestWorld(LevelController levelController, IVoxelSource terrainSource) {
       SetPlayer(new Player(), 1);
      
       // set up the level

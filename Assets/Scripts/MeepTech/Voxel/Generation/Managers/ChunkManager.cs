@@ -37,7 +37,7 @@ namespace MeepTech.Voxel.Generation.Managers {
     /// <param name="event"></param>
     /// <param name="origin"></param>
     public virtual void notifyOf(IEvent @event, IObserver origin = null) {
-      switch(@event) {
+      switch (@event) {
         case KillAllChunkManagementEventsEvent _:
           killAll();
           break;
@@ -79,6 +79,120 @@ namespace MeepTech.Voxel.Generation.Managers {
       /// The name of this event
       /// </summary>
       public string name => "Killing all chunk managers";
+    }
+
+    ///// EVENTS
+
+    /// <summary>
+    /// An event indicating a chunk has finished generating it's mesh and is ready to render
+    /// </summary>
+    public struct ChunkDataLoadingFinishedEvent : IEvent {
+
+      /// <summary>
+      /// The chunk location of the chunk that's finished generating it's mesh
+      /// </summary>
+      public Coordinate chunkLocation {
+        get;
+      }
+
+      /// <summary>
+      /// The name of this event
+      /// </summary>
+      public string name => "Chunk Voxel Data Has Finished Loading";
+
+      /// <summary>
+      /// Create a new event indicating a chunk has finished generating it's mesh
+      /// </summary>
+      /// <param name="chunkLocation"></param>
+      public ChunkDataLoadingFinishedEvent(Coordinate chunkLocation) {
+        this.chunkLocation = chunkLocation;
+      }
+    }
+
+    /// <summary>
+    /// An event indicating a chunk has finished generating it's mesh and is ready to render
+    /// </summary>
+    public struct ChunkDataNotFoundInFilesEvent : IEvent {
+
+      /// <summary>
+      /// If this was the result of an error
+      /// </summary>
+      public bool isInError {
+        get;
+      }
+
+      /// <summary>
+      /// The chunk location of the chunk that's finished generating it's mesh
+      /// </summary>
+      public Coordinate chunkLocation {
+        get;
+      }
+
+      /// <summary>
+      /// The name of this event
+      /// </summary>
+      public string name => "Chunk Data File Not Found";
+
+      /// <summary>
+      /// Create a new event indicating a chunk has finished generating it's mesh
+      /// </summary>
+      /// <param name="chunkLocation"></param>
+      public ChunkDataNotFoundInFilesEvent(Coordinate chunkLocation, bool isInError = false) {
+        this.chunkLocation = chunkLocation;
+        this.isInError = isInError;
+      }
+    }
+
+    /// <summary>
+    /// An event indicating a chunk has finished generating it's mesh and is ready to render
+    /// </summary>
+    public struct ChunkMeshGenerationFinishedEvent : IEvent {
+
+      /// <summary>
+      /// The chunk location of the chunk that's finished generating it's mesh
+      /// </summary>
+      public Coordinate chunkLocation {
+        get;
+      }
+
+      /// <summary>
+      /// The name of this event
+      /// </summary>
+      public string name => "Chunk Mesh Has Finished Generating";
+
+      /// <summary>
+      /// Create a new event indicating a chunk has finished generating it's mesh
+      /// </summary>
+      /// <param name="chunkLocation"></param>
+      public ChunkMeshGenerationFinishedEvent(Coordinate chunkLocation) {
+        this.chunkLocation = chunkLocation;
+      }
+    }
+
+    /// <summary>
+    /// An event indicating a chunk has moved out of the zone we wish to render it's mesh in.
+    /// </summary>
+    public struct ChunkOutOfRenderZoneEvent : IEvent {
+
+      /// <summary>
+      /// The chunk location of the chunk that's finished generating it's mesh
+      /// </summary>
+      public Coordinate[] chunkLocations {
+        get;
+      }
+
+      /// <summary>
+      /// The name of this event
+      /// </summary>
+      public string name => "Chunk Mesh has exited the render area";
+
+      /// <summary>
+      /// Create a new event indicating a chunk has finished generating it's mesh
+      /// </summary>
+      /// <param name="chunkLocation"></param>
+      public ChunkOutOfRenderZoneEvent(Coordinate[] chunkLocation) {
+        this.chunkLocations = chunkLocation;
+      }
     }
   }
 }

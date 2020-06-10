@@ -9,7 +9,7 @@ namespace Evix.Controllers.Unity {
     /// <summary>
     /// The controller for the active level.
     /// </summary>
-    public UnityLevelController levelController;
+    public LevelController levelController;
 
     public float XWaveFrequency = 0.1f;
     public float ZWaveFrequency = 0.1f;

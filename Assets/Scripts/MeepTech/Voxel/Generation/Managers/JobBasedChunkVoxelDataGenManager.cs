@@ -46,7 +46,7 @@ namespace MeepTech.Voxel.Generation.Managers {
     public override void notifyOf(IEvent @event, IObserver origin = null) {
       switch(@event) {
         // if chunk data wasn't found in a file, lets generate it for them
-        case ChunkFileDataLoadingManager<VoxelFlatArray>.ChunkDataNotFoundInFilesEvent cfdlmcdnfife:
+        case ChunkDataNotFoundInFilesEvent cfdlmcdnfife:
           chunkGenerationJobManager.enQueue(new Coordinate[] { cfdlmcdnfife.chunkLocation });
 #if DEBUG
           Interlocked.Increment(ref totalRequestsRecieved);
@@ -163,7 +163,7 @@ namespace MeepTech.Voxel.Generation.Managers {
 #endif
             if (!voxelData.isEmpty) {
               World.EventSystem.notifyChannelOf(
-                new ChunkFileDataLoadingManager<VoxelStorageType>.ChunkDataLoadingFinishedEvent(chunkLocation),
+                new ChunkDataLoadingFinishedEvent(chunkLocation),
                 Evix.EventSystems.WorldEventSystem.Channels.TerrainGeneration
               );
             }

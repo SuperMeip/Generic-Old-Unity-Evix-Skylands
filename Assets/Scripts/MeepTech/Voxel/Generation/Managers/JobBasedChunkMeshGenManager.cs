@@ -1,12 +1,8 @@
 ﻿using MeepTech.Events;
 using MeepTech.GamingBasics;
 using MeepTech.Voxel.Collections.Level;
-using MeepTech.Voxel.Collections.Storage;
 using MeepTech.Voxel.Generation.Mesh;
-using System.Collections.Concurrent;
-using System.Linq;
 using System.Threading;
-using static MeepTech.Voxel.Generation.Managers.ChunkMeshGenerationManager;
 
 namespace MeepTech.Voxel.Generation.Managers {
 
@@ -47,7 +43,7 @@ namespace MeepTech.Voxel.Generation.Managers {
     public override void notifyOf(IEvent @event, IObserver origin = null) {
       switch (@event) {
         // if chunk data wasn't found in a file, lets generate it for them
-        case ChunkFileDataLoadingManager<VoxelFlatArray>.ChunkDataLoadingFinishedEvent cfdlmcdlfe:
+        case ChunkDataLoadingFinishedEvent cfdlmcdlfe:
           chunkMeshGenQueueManagerJob.enQueue(new Coordinate[] { cfdlmcdlfe.chunkLocation });
 #if DEBUG
           Interlocked.Increment(ref totalRequestsRecieved);
@@ -196,7 +192,7 @@ namespace MeepTech.Voxel.Generation.Managers {
           if (!mesh.isEmpty) {
             jobManager.manager.chunkDataStorage.setChunkMesh(chunkLocation, mesh);
             World.EventSystem.notifyChannelOf(
-              new ChunkMeshGenerationFinishedEvent(chunkLocation),
+              new ChunkManager.ChunkMeshGenerationFinishedEvent(chunkLocation),
               Evix.EventSystems.WorldEventSystem.Channels.TerrainGeneration
             );
           }

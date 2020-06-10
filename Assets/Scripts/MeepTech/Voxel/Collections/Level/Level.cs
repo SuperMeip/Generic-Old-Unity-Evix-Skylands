@@ -303,5 +303,18 @@ namespace MeepTech.Voxel.Collections.Level {
         (int)location.z / Chunk.Diameter
       );
     }
+
+    /// <summary>
+    /// convert a world vector 3 to a level chunk location
+    /// </summary>
+    /// <param name="location"></param>
+    /// <returns></returns>
+    public static Coordinate toCoordinate(this Vector3 location) {
+      return (
+        (int)location.x,
+        (int)location.y,
+        (int)location.z
+      );
+    }
   }
 }
