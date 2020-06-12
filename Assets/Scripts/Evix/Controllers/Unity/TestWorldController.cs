@@ -4,7 +4,12 @@ using UnityEngine;
 
 namespace Evix.Controllers.Unity {
 
-  public class UnityWorldController : MonoBehaviour {
+  public class TestWorldController : MonoBehaviour {
+
+    /// <summary>
+    /// The current object to focus on.
+    /// </summary>
+    public FocusController currentFocus;
 
     /// <summary>
     /// The controller for the active level.
@@ -26,7 +31,7 @@ namespace Evix.Controllers.Unity {
     // Start is called before the first frame update
     void Awake() {
       voxelSource = getConfiguredPlainSource();
-      World.InitializeTestWorld(levelController, voxelSource);
+      World.InitializeTestWorld(levelController, voxelSource, currentFocus);
     }
 
     WaveSource getConfiguredWaveSource() {

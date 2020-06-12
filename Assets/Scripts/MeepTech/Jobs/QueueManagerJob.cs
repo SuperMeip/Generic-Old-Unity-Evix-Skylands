@@ -52,7 +52,7 @@ namespace MeepTech.Jobs {
       /// On done, set the space free in the parent job
       /// </summary>
       protected override void finallyDo() {
-        jobManager.runningJobCount--;
+        jobManager.onJobComplete();
       }
     }
 
@@ -87,7 +87,7 @@ namespace MeepTech.Jobs {
     /// Create a new job, linked to the level
     /// </summary>
     /// <param name="level"></param>
-    protected QueueManagerJob(int maxChildJobsCount = 25) {
+    protected QueueManagerJob(int maxChildJobsCount = 20) {
       runningJobCount = 0;
       this.maxChildJobsCount = maxChildJobsCount;
       queue = new ConcurrentQueue<QueueItemType>();
@@ -227,6 +227,13 @@ namespace MeepTech.Jobs {
     /// </summary>
     protected virtual void onQueueItemInvalid(QueueItemType queueItem) {
       return;
+    }
+
+    /// <summary>
+    /// De-increment how many jobs are running when one finishes.
+    /// </summary>
+    internal virtual void onJobComplete() {
+      runningJobCount--;
     }
 
     /// <summary>

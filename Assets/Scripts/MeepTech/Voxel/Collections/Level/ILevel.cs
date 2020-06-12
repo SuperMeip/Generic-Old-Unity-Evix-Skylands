@@ -1,8 +1,10 @@
-﻿namespace MeepTech.Voxel.Collections.Level {
+﻿using MeepTech.Events;
+
+namespace MeepTech.Voxel.Collections.Level {
   /// <summary>
   /// An interface for a level, used to load the block data for a level around a player/focus point
   /// </summary>
-  public interface ILevel {
+  public interface ILevel: IObserver {
 
     /// <summary>
     /// The overall bounds of the level, max x y and z
@@ -21,7 +23,7 @@
     /// <summary>
     /// The current focus the level is using
     /// </summary>
-    Coordinate focus {
+    ILevelFocus focus {
       get;
     }
 
@@ -29,15 +31,6 @@
     /// The width of the active chunk area in chunks
     /// </summary>
     int meshedChunkDiameter {
-      get;
-    }
-
-    /// <summary>
-    /// The coordinates indicating the two chunks the extreems of what chunks are to be loaded from memmory:
-    ///   0: south bottom west most loaded chunk
-    ///   1: north top east most loaded chunk 
-    /// </summary>
-    Coordinate[] loadedChunkBounds {
       get;
     }
 
@@ -61,17 +54,6 @@
     IVoxelChunk getChunk(Coordinate chunkLocation, bool withMesh = false, bool withNeighbors = false, bool withNeighborsNeighbors = false, bool fullNeighborEncasement = false);
 
     /// <summary>
-    /// </summary>
-    /// <param name="centerChunkLocation">the center point/focus of the loaded chunks, usually a player location</param>
-    void initializeAround(Coordinate centerChunkLocation);
-
-    /// <summary>
-    /// Adjust the level's loaded focus to a new location
-    /// </summary>
-    /// <param name="newFocus"></param>
-    void adjustFocusTo(Coordinate newFocus);
-
-    /// <summary>
     /// Get if the given chunkLocation is loaded
     /// </summary>
     /// <param name="chunkLocation"></param>
@@ -83,7 +65,7 @@
     /// </summary>
     /// <param name="chunkLocation"></param>
     /// <returns></returns>
-    bool chunkIsWithinkMeshedBounds(Coordinate chunkLocation);
+    bool chunkIsWithinMeshedBounds(Coordinate chunkLocation);
 
     /// <summary>
     /// Stop all running managers used to build this level
@@ -98,6 +80,22 @@
     /// </summary>
     /// <returns></returns>
     string getManagerStats();
+
+    /// <summary>
+    /// The buffer diameter around rendered chunks to also load into memmory
+    /// </summary>
+    int chunkLoadBuffer {
+      get;
+    }
+
+    /// <summary>
+    /// The coordinates indicating the two chunks the extreems of what chunks are to be loaded from memmory:
+    ///   0: south bottom west most loaded chunk
+    ///   1: north top east most loaded chunk 
+    /// </summary>
+    Coordinate[] loadedChunkBounds {
+      get;
+    }
 #endif
   }
 }

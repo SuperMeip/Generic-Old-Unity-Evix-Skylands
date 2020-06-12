@@ -5,6 +5,7 @@ namespace MeepTech.Voxel.Collections.Storage {
   /// <summary>
   /// A type of voxel storage that uses a 1D byte array
   /// </summary>
+  [Serializable]
   public class VoxelFlatArray : VoxelStorage {
     /// <summary>
     /// The actual points

@@ -177,7 +177,7 @@ namespace MeepTech.Voxel.Generation.Managers {
 #if DEBUG
           else {
             Interlocked.Increment(ref jobManager.manager.alreadyNonEmptyChunksDropped);
-            World.Debugger.log($"Tried to generate the voxels for an empty chunk: {chunkLocation.ToString()}");
+            //World.Debugger.log($"Tried to generate the voxels for a non empty chunk: {chunkLocation.ToString()}");
           }
 #endif
         }

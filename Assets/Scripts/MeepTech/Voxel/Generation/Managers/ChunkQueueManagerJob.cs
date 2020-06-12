@@ -6,7 +6,7 @@ namespace MeepTech.Voxel.Generation.Managers {
   /// <summary>
   /// A base job for managing chunk work queues
   /// </summary>
-  public abstract class ChunkQueueManagerJob<ChunkManagerType> : QueueManagerJob<Coordinate> {
+  public abstract class ChunkQueueManagerJob<ChunkManagerType> : QueueManagerJob2<Coordinate> {
 
     /// <summary>
     /// The level we're loading for
@@ -28,7 +28,7 @@ namespace MeepTech.Voxel.Generation.Managers {
     /// Create a new job, linked to the level
     /// </summary>
     /// <param name="level"></param>
-    protected ChunkQueueManagerJob(ILevel level, ChunkManagerType manager, int maxJobsCount = 25) : base(maxJobsCount) {
+    protected ChunkQueueManagerJob(ILevel level, ChunkManagerType manager, int maxJobsCount = 20) : base(maxJobsCount) {
       this.level = level;
       this.manager = manager;
     }

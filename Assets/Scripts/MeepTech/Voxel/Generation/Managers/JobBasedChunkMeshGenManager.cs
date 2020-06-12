@@ -2,6 +2,7 @@
 using MeepTech.GamingBasics;
 using MeepTech.Voxel.Collections.Level;
 using MeepTech.Voxel.Generation.Mesh;
+using System.Linq;
 using System.Threading;
 
 namespace MeepTech.Voxel.Generation.Managers {
@@ -120,7 +121,7 @@ namespace MeepTech.Voxel.Generation.Managers {
       }
       IVoxelChunk chunk = level.getChunk(chunkLocation);
       // the chunk can't be loaded and empty, we'll generate nothing.
-      if ((chunk.isLoaded && chunk.isEmpty)) {
+      if (chunk.isLoaded && chunk.isEmpty) {
 #if DEBUG
         Interlocked.Increment(ref manager.chunksDroppedForBeingEmpty);
 #endif
@@ -136,22 +137,19 @@ namespace MeepTech.Voxel.Generation.Managers {
     /// <param name="queueItem"></param>
     /// <returns></returns>
     protected override bool itemIsReady(Coordinate chunkLocation) {
-      if (level.chunkIsWithinkMeshedBounds(chunkLocation)) {
+      if (level.chunkIsWithinMeshedBounds(chunkLocation)) {
         IVoxelChunk chunk = level.getChunk(chunkLocation, false, true, true, true);
         return chunk.isLoaded && chunk.neighborsNeighborsAreLoaded;
-      } else {
-        moveItemToEndOfQueue();
-        return false;
       }
+
+      return false;
     }
 
     /// <summary>
     /// Sort the queue by distance from the focus of the level
     /// </summary>
     protected override void sortQueue() {
-      //Coordinate[] sortedQueue = queue.OrderBy(o => o.distance(level.focus)).ToArray();
-      //lock (queue)
-      //queue = new ConcurrentQueue<Coordinate>(sortedQueue);
+      queue = queue.OrderBy(o => o.distance(level.focus.chunkLocation)).ToList();
     }
 
     /// <summary>

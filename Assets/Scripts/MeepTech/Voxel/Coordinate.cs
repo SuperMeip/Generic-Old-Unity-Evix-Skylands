@@ -819,6 +819,10 @@ namespace MeepTech.Voxel {
       return "{" + x.ToString() + ", " + y.ToString() + ", " + z.ToString() + "}";
     }
 
+    public string ToSaveString() {
+      return $"{x}-{y}-{z}";
+    }
+
     /// <summary>
     /// Get all points in one set of bounds but not the other
     /// </summary>

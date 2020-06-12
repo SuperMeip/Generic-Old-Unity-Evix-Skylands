@@ -57,7 +57,7 @@ namespace MeepTech.Voxel.Generation.Managers {
         Interlocked.Add(ref totalRequestsRecieved, chunkLocations.Length);
 #endif
         chunkLoadQueueManagerJob.enQueue(chunkLocations);
-        //chunkUnloadQueueManagerJob.deQueue(chunkLocations);
+        chunkUnloadQueueManagerJob.deQueue(chunkLocations);
       }) { Name = "Add Chunks To File Loading Queue" }.Start();
     }
 
@@ -67,7 +67,7 @@ namespace MeepTech.Voxel.Generation.Managers {
     /// <param name="chunkLocations"></param>
     public override void addChunksToUnload(Coordinate[] chunkLocations) {
       new Thread(() => {
-        //chunkUnloadQueueManagerJob.enQueue(chunkLocations);
+        chunkUnloadQueueManagerJob.enQueue(chunkLocations);
         chunkLoadQueueManagerJob.deQueue(chunkLocations);
       }) { Name = "Add Chunks To File Un-Loading Queue" }.Start();
     }
@@ -128,8 +128,9 @@ namespace MeepTech.Voxel.Generation.Managers {
       /// <param name="chunkLocation"></param>
       /// <returns></returns>
       protected override bool isAValidQueueItem(Coordinate chunkLocation) {
+        return false;
         // if this doesn't have a loaded file, remove it from this queue and load it in the generation one
-        if (level.chunkIsWithinLoadedBounds(chunkLocation)) {
+        /*if (level.chunkIsWithinLoadedBounds(chunkLocation)) {
           if (!File.Exists(manager.getChunkFileName(chunkLocation))) {
 #if DEBUG
             Interlocked.Increment(ref manager.chunkDataFilesNotFound);
@@ -143,7 +144,7 @@ namespace MeepTech.Voxel.Generation.Managers {
           return false;
         }
 
-        return base.isAValidQueueItem(chunkLocation);
+        return base.isAValidQueueItem(chunkLocation);*/
       }
 
       /// <summary>
@@ -166,10 +167,7 @@ namespace MeepTech.Voxel.Generation.Managers {
       /// Sort the queue by distance from the focus of the level
       /// </summary>
       protected override void sortQueue() {
-        Coordinate[] sortedQueue = queue.OrderBy(o => o.distance(level.focus)).ToArray();
-        lock (queue) {
-          queue = new ConcurrentQueue<Coordinate>(sortedQueue);
-        }
+        queue = queue.OrderBy(o => o.distance(level.focus.chunkLocation)).ToList();
       }
 
       /// <summary>
@@ -209,7 +207,7 @@ namespace MeepTech.Voxel.Generation.Managers {
 #if DEBUG
             Interlocked.Increment(ref jobManager.manager.chunkDataLoadedFromFiles);
 #endif
-            if (!voxelData.isEmpty) {
+            if (voxelData != null && !voxelData.isEmpty) {
               World.EventSystem.notifyChannelOf(
                 new ChunkDataLoadingFinishedEvent(chunkLocation),
                 WorldEventSystem.Channels.TerrainGeneration
@@ -225,7 +223,7 @@ namespace MeepTech.Voxel.Generation.Managers {
           } else {
 #if DEBUG
             Interlocked.Increment(ref jobManager.manager.alreadyNonEmptyChunksDropped);
-            World.Debugger.log($"Tried to generate the voxels for a non-empty chunk: {chunkLocation.ToString()}");
+            //World.Debugger.log($"Tried to load the voxels for a non-empty chunk: {chunkLocation.ToString()}");
 #endif
           }
         }

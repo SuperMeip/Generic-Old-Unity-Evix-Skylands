@@ -4,6 +4,7 @@ using MeepTech.Voxel.Collections.Storage;
 using System.IO;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
+using UnityEngine;
 
 namespace MeepTech.Voxel.Generation.Managers {
 
@@ -16,7 +17,7 @@ namespace MeepTech.Voxel.Generation.Managers {
     /// <summary>
     /// The save path for levels.
     /// </summary>
-    readonly string SavePath = "/leveldata/";
+    static readonly string SavePath = Application.persistentDataPath + "/leveldata/";
 
     /// <summary>
     /// Construct
@@ -42,7 +43,7 @@ namespace MeepTech.Voxel.Generation.Managers {
     /// <param name="chunkLocation">the location of the chunk</param>
     /// <returns></returns>
     protected string getChunkFileName(Coordinate chunkLocation) {
-      return SavePath + "/" + level.seed + "/" + chunkLocation.ToString() + ".evxch";
+      return getLevelSavePath() + chunkLocation.ToSaveString() + ".evxch";
     }
 
     /// <summary>
@@ -54,6 +55,7 @@ namespace MeepTech.Voxel.Generation.Managers {
       IVoxelChunk chunkData = level.getChunk(chunkLocation);
       if (!chunkData.isEmpty) {
         IFormatter formatter = new BinaryFormatter();
+        checkForSaveDirectory();
         Stream stream = new FileStream(getChunkFileName(chunkLocation), FileMode.Create, FileAccess.Write, FileShare.None);
         formatter.Serialize(stream, chunkData.voxels);
         stream.Close();
@@ -68,11 +70,32 @@ namespace MeepTech.Voxel.Generation.Managers {
     internal VoxelStorageType getVoxelDataForChunkFromFile(Coordinate chunkLocation) {
       IFormatter formatter = new BinaryFormatter();
       Stream readStream = new FileStream(getChunkFileName(chunkLocation), FileMode.Open, FileAccess.Read, FileShare.Read);
-      VoxelStorageType voxelData = (VoxelStorageType)formatter.Deserialize(readStream);
-      voxelData.isLoaded = true;
-      readStream.Close();
+      readStream.Position = 0;
+      var fileData = formatter.Deserialize(readStream);
+      if (fileData is VoxelStorageType) {
+        VoxelStorageType voxelData = (VoxelStorageType)fileData;
+        voxelData.isLoaded = true;
+        readStream.Close();
+        return voxelData;
+      }
 
-      return voxelData;
+      return default;
+    }
+
+    /// <summary>
+    /// Create the save file directory if it doesn't exist for the level yet
+    /// </summary>
+    void checkForSaveDirectory() {
+      if (Directory.Exists(getLevelSavePath())) {
+        return;
+      }
+
+      Directory.CreateDirectory(getLevelSavePath());
+    }
+
+
+    string getLevelSavePath() {
+      return SavePath + "/" + level.seed + "/";
     }
   }
 }

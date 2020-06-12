@@ -5,7 +5,8 @@ namespace MeepTech.Voxel.Collections.Storage {
 
   /// <summary>
   /// A collection of voxel data stored by point location in a dictionary
-  /// </summary>
+  /// </summary> 
+  [Serializable]
   public class VoxelDictionary : VoxelStorage {
 
     /// <summary>

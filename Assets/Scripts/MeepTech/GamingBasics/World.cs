@@ -1,15 +1,11 @@
-﻿using System.Collections.Generic;
-using UnityEngine;
-using MeepTech.Voxel.Collections.Level;
-using MeepTech.Events;
-using System;
+﻿using MeepTech.Voxel.Collections.Level;
 using Evix.EventSystems;
 using MeepTech.Voxel;
 using MeepTech.Voxel.Generation.Mesh;
 using MeepTech.Voxel.Collections.Storage;
-using Evix.Controllers.Unity;
 using MeepTech.Voxel.Generation.Sources;
 using MeepTech.Voxel.Generation.Managers;
+using Evix;
 
 namespace MeepTech.GamingBasics {
 
@@ -33,7 +29,7 @@ namespace MeepTech.GamingBasics {
     /// <summary>
     /// The debugger used to interface with unity debugging.
     /// </summary>
-    public static UnityDebugger Debugger {
+    public static IDebugger Debugger {
       get;
     } = new UnityDebugger();
 
@@ -60,15 +56,9 @@ namespace MeepTech.GamingBasics {
     }
 
     /// <summary>
-    /// The objects this world is managing
-    /// </summary>
-    List<GameObject> gameObjects;
-
-    /// <summary>
     /// Make a new world
     /// </summary>
     protected World() {
-      gameObjects = new List<GameObject>();
       players = new Player[2];
     }
 
@@ -85,11 +75,11 @@ namespace MeepTech.GamingBasics {
     /// <summary>
     /// start test world
     /// </summary>
-    public static void InitializeTestWorld(LevelController levelController, IVoxelSource terrainSource) {
+    public static void InitializeTestWorld(ILevelController levelController, IVoxelSource terrainSource, ILevelFocus testFocus) {
       SetPlayer(new Player(), 1);
      
       // set up the level
-      Coordinate chunkBounds = (1000, 20, 1000);
+      Coordinate chunkBounds = (1000, 5, 1000);
       activeLevel = new Level<
         VoxelFlatArray,
         HashedChunkDataStorage,
@@ -103,16 +93,19 @@ namespace MeepTech.GamingBasics {
       );
 
       // set up the level controller.
-      levelController.level = activeLevel;
+      EventSystem.subscribe(
+        activeLevel,
+        WorldEventSystem.Channels.TerrainGeneration
+      );
       EventSystem.subscribe(
         levelController,
         WorldEventSystem.Channels.TerrainGeneration
       );
-      levelController.initialize();
+      levelController.initializeFor(activeLevel);
 
       // initialize around a chunk
-      Coordinate spawn = chunkBounds / 2;
-      activeLevel.initializeAround(spawn);
+      testFocus.spawn(chunkBounds * Chunk.Diameter/2);
+      testFocus.setActive();
     }
   }
 }

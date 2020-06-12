@@ -1,15 +1,22 @@
-﻿using UnityEngine;
+﻿using MeepTech.GamingBasics;
+using UnityEngine;
 
-namespace MeepTech {
+namespace Evix {
 
-  public class UnityDebugger {
+  public class UnityDebugger : IDebugger {
     /// <summary>
     /// If the debugger is enabled.
     /// </summary>
 #if DEBUG
-    public bool isEnabled = true;
+    public bool isEnabled {
+      get;
+      private set;
+    } = true;
 #else
-    public bool isEnabled = false;
+    public bool isEnabled {
+      get;
+      private set;
+    } = false;
 #endif
 
     /// <summary>

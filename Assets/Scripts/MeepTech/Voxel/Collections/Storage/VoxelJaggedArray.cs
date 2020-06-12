@@ -5,6 +5,7 @@ namespace MeepTech.Voxel.Collections.Storage {
   /// <summary>
   /// Jagged array dynamic block storage
   /// </summary>
+  [Serializable]
   public class VoxelJaggedArray : VoxelStorage {
 
     /// <summary>
