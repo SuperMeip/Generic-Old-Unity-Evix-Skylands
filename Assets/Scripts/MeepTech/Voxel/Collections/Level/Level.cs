@@ -52,7 +52,7 @@ namespace MeepTech.Voxel.Collections.Level {
     /// The width of the active chunk area in chunks
     /// </summary>
     int loadedChunkDiameter {
-      get => meshedChunkDiameter + chunkLoadBuffer;
+      get => meshedChunkDiameter + chunkLoadBuffer * 2;
     }
 
     /// <summary>
@@ -128,9 +128,16 @@ namespace MeepTech.Voxel.Collections.Level {
     /// <param name="chunkBounds">the max x y and z chunk sizes of the world</param>
     public Level(
       Coordinate chunkBounds,
-      IVoxelSource voxelSource
+      IVoxelSource voxelSource,
+      int meshedChunkDiameter = 15,
+      int chunkLoadBuffer = 5,
+      int chunksBelowToMesh = 5
     ) {
       this.chunkBounds   = chunkBounds;
+      this.meshedChunkDiameter = meshedChunkDiameter;
+      this.chunkLoadBuffer = chunkLoadBuffer;
+      this.chunksBelowToMesh = chunksBelowToMesh;
+
       IVoxelMeshGenerator voxelMeshGenerator = (MeshGeneratorType)Activator.CreateInstance(typeof(MeshGeneratorType));
       chunkDataStorage = (ChunkDataStorageType)Activator.CreateInstance(typeof(ChunkDataStorageType), this);
       chunkFileDataLoadingManager = (ChunkFileDataLoadingManagerType)Activator.CreateInstance(typeof(ChunkFileDataLoadingManagerType), this, chunkDataStorage);
@@ -237,16 +244,16 @@ namespace MeepTech.Voxel.Collections.Level {
     /// <param name="newFocus">The new focal chunkLocation</param>
     void adjustFocus() {
       Coordinate[] newLoadedChunkBounds = getLoadedChunkBounds(focus);
-      Coordinate[] chunkColumnsToLoad = Coordinate.GetPointDiff(newLoadedChunkBounds, loadedChunkBounds);
-      Coordinate[] chunkColumnsToUnload = Coordinate.GetPointDiff(loadedChunkBounds, newLoadedChunkBounds);
+      Coordinate[] newChunksToLoad = Coordinate.GetPointDiff(newLoadedChunkBounds, loadedChunkBounds);
+      Coordinate[] oldChunksToUnload = Coordinate.GetPointDiff(loadedChunkBounds, newLoadedChunkBounds);
 
       // set the new bounds and focus.
       meshedChunkBounds = getMeshedChunkBounds(focus);
       loadedChunkBounds = newLoadedChunkBounds;
 
       // queue the collected values
-      chunkFileDataLoadingManager.addChunksToLoad(chunkColumnsToLoad);
-      chunkFileDataLoadingManager.addChunksToUnload(chunkColumnsToUnload);
+      chunkFileDataLoadingManager.addChunksToLoad(newChunksToLoad);
+      //chunkFileDataLoadingManager.addChunksToUnload(oldChunksToUnload);
     }
 
     /// <summary>

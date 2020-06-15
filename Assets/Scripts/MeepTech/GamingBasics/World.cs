@@ -75,22 +75,12 @@ namespace MeepTech.GamingBasics {
     /// <summary>
     /// start test world
     /// </summary>
-    public static void InitializeTestWorld(ILevelController levelController, IVoxelSource terrainSource, ILevelFocus testFocus) {
+    public static void InitializeTestWorld(
+      ILevelController levelController,
+      ILevelFocus testFocus
+    ) {
       SetPlayer(new Player(), 1);
-     
-      // set up the level
-      Coordinate chunkBounds = (1000, 5, 1000);
-      activeLevel = new Level<
-        VoxelFlatArray,
-        HashedChunkDataStorage,
-        MarchGenerator,
-        JobBasedChunkFileDataLoadingManager<VoxelFlatArray>,
-        JobBasedChunkVoxelDataGenManager<VoxelFlatArray>,
-        JobBasedChunkMeshGenManager
-      >(
-        chunkBounds,
-        terrainSource
-      );
+      activeLevel = levelController.level;
 
       // set up the level controller.
       EventSystem.subscribe(
@@ -101,10 +91,9 @@ namespace MeepTech.GamingBasics {
         levelController,
         WorldEventSystem.Channels.TerrainGeneration
       );
-      levelController.initializeFor(activeLevel);
 
       // initialize around a chunk
-      testFocus.spawn(chunkBounds * Chunk.Diameter/2);
+      testFocus.spawn(activeLevel.chunkBounds * Chunk.Diameter / 2);
       testFocus.setActive();
     }
   }

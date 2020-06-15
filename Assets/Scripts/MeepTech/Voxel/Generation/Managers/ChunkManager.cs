@@ -70,18 +70,18 @@ namespace MeepTech.Voxel.Generation.Managers {
     }
 #endif
 
+    ///// EVENTS
+
     /// <summary>
     /// An event to kill all chunk managers
     /// </summary>
-    public class KillAllChunkManagementEventsEvent : IEvent {
+    public struct KillAllChunkManagementEventsEvent : IEvent {
 
       /// <summary>
       /// The name of this event
       /// </summary>
       public string name => "Killing all chunk managers";
     }
-
-    ///// EVENTS
 
     /// <summary>
     /// An event indicating a chunk has finished generating it's mesh and is ready to render

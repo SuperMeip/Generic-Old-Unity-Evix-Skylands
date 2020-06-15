@@ -1,4 +1,9 @@
 ﻿using MeepTech.GamingBasics;
+using MeepTech.Voxel;
+using MeepTech.Voxel.Collections.Level;
+using MeepTech.Voxel.Collections.Storage;
+using MeepTech.Voxel.Generation.Managers;
+using MeepTech.Voxel.Generation.Mesh;
 using MeepTech.Voxel.Generation.Sources;
 using UnityEngine;
 
@@ -16,36 +21,38 @@ namespace Evix.Controllers.Unity {
     /// </summary>
     public LevelController levelController;
 
-    public float XWaveFrequency = 0.1f;
-    public float ZWaveFrequency = 0.1f;
-    public float Smoothness = -1f;
-    public float value4 = 1f;
-    public float value5 = 0f;
-    public float value6 = 1f;
-    public float value7 = 10f;
-    public float value8 = 20f;
     public float SeaLevel = 30.0f;
+    public Vector3 levelSize = new Vector3(1000, 2, 1000);
+    public int meshedChunkDiameter = 20;
+    public int chunkLoadBuffer = 10;
+    public int chunksBelowToMesh = 5;
 
     IVoxelSource voxelSource;
 
     // Start is called before the first frame update
     void Awake() {
+      // set up the voxel source
       voxelSource = getConfiguredPlainSource();
-      World.InitializeTestWorld(levelController, voxelSource, currentFocus);
-    }
 
-    WaveSource getConfiguredWaveSource() {
-      WaveSource newSource = new WaveSource();
-      newSource.xWaveFrequency = XWaveFrequency;
-      newSource.zWaveFrequency = ZWaveFrequency;
-      newSource.smoothness = Smoothness;
-      newSource.value4 = value4;
-      newSource.value5 = value5;
-      newSource.value6 = value6;
-      newSource.value7 = value7;
-      newSource.value8 = value8;
+      // set up the level
+      Coordinate chunkBounds = levelSize;
+      ILevel level = new Level<
+        VoxelFlatArray,
+        HashedChunkDataStorage,
+        MarchGenerator,
+        JobBasedChunkFileDataLoadingManager<VoxelFlatArray>,
+        JobBasedChunkVoxelDataGenManager<VoxelFlatArray>,
+        JobBasedChunkMeshGenManager
+      >(
+        chunkBounds,
+        voxelSource,
+        meshedChunkDiameter,
+        chunkLoadBuffer,
+        chunksBelowToMesh
+      );
 
-      return newSource;
+      levelController.initializeFor(level);
+      World.InitializeTestWorld(levelController, currentFocus);
     }
 
     FlatPlainsSource getConfiguredPlainSource() {

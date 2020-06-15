@@ -76,7 +76,9 @@ namespace MeepTech.Jobs {
     /// </summary>
     public void start() {
       thread = new System.Threading.Thread(run);
-      thread.Name = thread.Name == "" ? threadName :thread.Name;
+      thread.Name = thread.Name == "" || thread.Name == null 
+        ? threadName 
+        : thread.Name;
       thread.Start();
     }
 

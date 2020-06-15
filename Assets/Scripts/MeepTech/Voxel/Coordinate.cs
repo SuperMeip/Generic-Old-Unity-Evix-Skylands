@@ -834,7 +834,7 @@ namespace MeepTech.Voxel {
       // For all points within bounds set A
       boundsA[0].until(boundsA[1], coordinate => {
         // check if that point is in bounds set B
-        if (coordinate.isWithin(boundsB)) {
+        if (!coordinate.isWithin(boundsB)) {
           diffPoints.Add(coordinate);
         }
       });
