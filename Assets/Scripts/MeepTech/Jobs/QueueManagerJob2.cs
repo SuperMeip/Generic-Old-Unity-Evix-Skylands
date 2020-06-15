@@ -66,17 +66,13 @@ namespace MeepTech.Jobs {
         // if the chunk has already been canceled, don't requeue it right now
         if (!(canceledItems.TryGetValue(queueObject, out bool hasBeenCanceled) && hasBeenCanceled)) {
           newlyAddedQueueItems.Add(queueObject);
+          //World.Debugger.log($"added {queueObject} to the bag for {threadName}");
         }
       }
 
       // if the queue manager job isn't running, start it
       if (!isRunning) {
-        try {
-          start();
-          // if two items were enqueued quick sometimes it can try to start the same threat twice
-        } catch (System.Threading.ThreadStateException) {
-          return;
-        }
+        start();
       }
     }
 
@@ -142,6 +138,7 @@ namespace MeepTech.Jobs {
     protected override void jobFunction() {
       while (newlyAddedQueueItems.Count > 0 || queue.Count > 0) {
         queueNewlyAddedItems();
+        //World.Debugger.log($"{threadName} is running on a queue of [{string.Join(", ", queue.Select(i => i.ToString()))}]");
         queue.RemoveAll(queueItem => {
           // if the item has been canceled. Remove it.
           if (itemIsCanceled(queueItem)) {
@@ -156,6 +153,7 @@ namespace MeepTech.Jobs {
 
           // if we have space, pop off the top of the queue and run it as a job.
           if (runningJobCount < maxChildJobsCount && itemIsReady(queueItem)) {
+            //World.Debugger.log($"{threadName} is spinning up a job for {queueItem}");
             runningJobCount++;
             getChildJob(queueItem).start();
             return true;
@@ -163,6 +161,7 @@ namespace MeepTech.Jobs {
 
           return false;
         });
+     // World.Debugger.log($"{threadName} post removal queue: [{string.Join(", ", queue.Select(i => i.ToString()))}]");
       }
     }
 
@@ -177,6 +176,7 @@ namespace MeepTech.Jobs {
     /// Attempt to queue newly items from the bag
     /// </summary>
     void queueNewlyAddedItems() {
+     // World.Debugger.log($"{threadName} is checking for additions to the queue of: [{string.Join(", ", queue.Select(i => i.ToString()))}]");
       int itemsQueued = 0;
       // get the # of assigned controllers at this moment in the bag.
       int newlyQueuedItemCount = newlyAddedQueueItems.Count;
@@ -186,6 +186,7 @@ namespace MeepTech.Jobs {
           && !queue.Contains(newQueueItem)
         ) {
           itemsQueued++;
+          //World.Debugger.log($"enqueue'd {newQueueItem} from the bag for {threadName}");
           queue.Add(newQueueItem);
         }
       }

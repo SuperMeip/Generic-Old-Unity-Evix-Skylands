@@ -98,13 +98,17 @@ namespace MeepTech.Voxel.Generation.Managers {
       /// <summary>
       /// The name of this event
       /// </summary>
-      public string name => "Chunk Voxel Data Has Finished Loading";
+      //public string name => "Chunk Voxel Data Has Finished Loading";
+      public string name {
+        get;
+      }
 
       /// <summary>
       /// Create a new event indicating a chunk has finished generating it's mesh
       /// </summary>
       /// <param name="chunkLocation"></param>
       public ChunkDataLoadingFinishedEvent(Coordinate chunkLocation) {
+        name = $"Chunk Voxel Data Has Finished Loading {chunkLocation.ToString()}";
         this.chunkLocation = chunkLocation;
       }
     }
@@ -131,13 +135,17 @@ namespace MeepTech.Voxel.Generation.Managers {
       /// <summary>
       /// The name of this event
       /// </summary>
-      public string name => "Chunk Data File Not Found";
+      //public string name => "Chunk Data File Not Found";
+      public string name {
+        get;
+      }
 
       /// <summary>
       /// Create a new event indicating a chunk has finished generating it's mesh
       /// </summary>
       /// <param name="chunkLocation"></param>
       public ChunkDataNotFoundInFilesEvent(Coordinate chunkLocation, bool isInError = false) {
+        name = $"Chunk Data File Not Found {chunkLocation.ToString()}";
         this.chunkLocation = chunkLocation;
         this.isInError = isInError;
       }
@@ -158,13 +166,17 @@ namespace MeepTech.Voxel.Generation.Managers {
       /// <summary>
       /// The name of this event
       /// </summary>
-      public string name => "Chunk Mesh Has Finished Generating";
+      //public string name => "Chunk Mesh Has Finished Generating";
+      public string name {
+        get;
+      }
 
       /// <summary>
       /// Create a new event indicating a chunk has finished generating it's mesh
       /// </summary>
       /// <param name="chunkLocation"></param>
       public ChunkMeshGenerationFinishedEvent(Coordinate chunkLocation) {
+        name = $"Chunk Mesh Has Finished Loading {chunkLocation.ToString()}";
         this.chunkLocation = chunkLocation;
       }
     }
@@ -177,21 +189,25 @@ namespace MeepTech.Voxel.Generation.Managers {
       /// <summary>
       /// The chunk location of the chunk that's finished generating it's mesh
       /// </summary>
-      public Coordinate[] chunkLocations {
+      public Coordinate[] chunkLocation {
         get;
       }
 
       /// <summary>
       /// The name of this event
       /// </summary>
-      public string name => "Chunk Mesh has exited the render area";
+      //public string name => "Chunk Mesh has exited the render area";
+      public string name {
+        get;
+      }
 
       /// <summary>
       /// Create a new event indicating a chunk has finished generating it's mesh
       /// </summary>
       /// <param name="chunkLocation"></param>
       public ChunkOutOfRenderZoneEvent(Coordinate[] chunkLocation) {
-        this.chunkLocations = chunkLocation;
+        name = $"Chunk has left visible render zone {chunkLocation.ToString()}";
+        this.chunkLocation = chunkLocation;
       }
     }
   }

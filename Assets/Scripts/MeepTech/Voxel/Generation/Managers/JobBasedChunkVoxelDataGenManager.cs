@@ -155,7 +155,8 @@ namespace MeepTech.Voxel.Generation.Managers {
           Interlocked.Increment(ref jobManager.manager.requestsProcessedByJobs);
 #endif
           // if the chunk is empty, lets try to fill it.
-          if (jobManager.level.getChunk(chunkLocation).isEmpty) {
+          IVoxelChunk chunk = jobManager.level.getChunk(chunkLocation);
+          if (chunk.isEmpty && !chunk.isLoaded) {
             VoxelStorageType voxelData = jobManager.manager.generateVoxelDataForChunk(chunkLocation);
             jobManager.manager.chunkDataStorage.setChunkVoxelData(chunkLocation, voxelData);
 #if DEBUG

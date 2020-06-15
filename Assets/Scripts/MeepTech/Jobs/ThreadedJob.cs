@@ -76,10 +76,12 @@ namespace MeepTech.Jobs {
     /// </summary>
     public void start() {
       thread = new System.Threading.Thread(run);
-      thread.Name = thread.Name == "" || thread.Name == null 
-        ? threadName 
+      thread.Name = thread.Name == "" || thread.Name == null
+        ? threadName
         : thread.Name;
-      thread.Start();
+      if (!thread.IsAlive) {
+        thread.Start();
+      }
     }
 
     /// <summary>
@@ -87,7 +89,9 @@ namespace MeepTech.Jobs {
     /// Does NOT set done to true
     /// </summary>
     public void abort() {
-      thread.Abort();
+      try {
+        thread.Abort();
+      } catch { }
       finallyDo();
       isRunning = false;
     }
