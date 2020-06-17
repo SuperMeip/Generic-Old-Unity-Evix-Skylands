@@ -1,6 +1,5 @@
 ﻿using MeepTech.Voxel.Collections.Storage;
 using MeepTech.Voxel.Generation.Mesh;
-using UnityEngine;
 
 namespace MeepTech.Voxel.Collections.Level {
 
@@ -13,55 +12,6 @@ namespace MeepTech.Voxel.Collections.Level {
     /// The voxel diameter, x y and z, of a chunk in this level
     /// </summary>
     public const int Diameter = 64;
-
-    /// <summary>
-    /// if this storage set is empty of voxels
-    /// </summary>
-    public bool isLoaded {
-      get => voxels.isLoaded;
-      set { voxels.isLoaded = value; }
-    }
-
-    /// <summary>
-    /// Check if this chunk has all of it's neighbors loaded.
-    /// </summary>
-    public bool neighborsAreLoaded {
-      get {
-        foreach(IVoxelChunk neighbor in neighbors) {
-          if (neighbor != null && neighbor.isLoaded) {
-            continue;
-          } else {
-            return false;
-          }
-        }
-
-        return true;
-      }
-    }
-
-    /// <summary>
-    /// Check if this chunk has all of it's neighbors loaded.
-    /// </summary>
-    public bool neighborsNeighborsAreLoaded {
-      get {
-        foreach(Chunk neighbor in neighbors) {
-          if (neighbor != null && neighbor.isLoaded) {
-           foreach(Chunk neighborOfNeighbor in neighbor.neighbors) {
-              if (neighborOfNeighbor != null && neighborOfNeighbor.isLoaded) {
-                continue;
-              } else {
-                return false;
-              }
-            }
-            continue;
-          } else {
-            return false;
-          }
-        }
-
-        return true;
-      }
-    }
 
     /// <summary>
     /// The voxels in this chunk
@@ -90,6 +40,63 @@ namespace MeepTech.Voxel.Collections.Level {
     /// </summary>
     public bool isEmpty
       => voxels == null || voxels.isEmpty;
+
+    /// <summary>
+    /// if this storage set is empty of voxels
+    /// </summary>
+    public bool isLoaded {
+      get => voxels != null && voxels.isLoaded;
+      set {
+        voxels.isLoaded = value;
+      }
+    }
+
+    /// <summary>
+    /// If this chunk has a loaded mesh
+    /// </summary>
+    public bool isMeshed
+      => mesh != null;
+
+    /// <summary>
+    /// Check if this chunk has all of it's neighbors loaded.
+    /// </summary>
+    public bool neighborsAreLoaded {
+      get {
+        foreach (IVoxelChunk neighbor in neighbors) {
+          if (neighbor != null && neighbor.isLoaded) {
+            continue;
+          } else {
+            return false;
+          }
+        }
+
+        return true;
+      }
+    }
+
+    /// <summary>
+    /// Check if this chunk has all of it's neighbors loaded.
+    /// </summary>
+    public bool neighborsNeighborsAreLoaded {
+      get {
+        foreach (Chunk neighbor in neighbors) {
+          if (neighbor != null && neighbor.isLoaded) {
+            foreach (Chunk neighborOfNeighbor in neighbor.neighbors) {
+              if (neighborOfNeighbor != null && neighborOfNeighbor.isLoaded) {
+                continue;
+              } else {
+                return false;
+              }
+            }
+            continue;
+          } else {
+            return false;
+          }
+        }
+
+        return true;
+      }
+    }
 
     /// <summary>
     /// The neighbors of this chunk, indexed by the direction they're in
@@ -122,12 +129,12 @@ namespace MeepTech.Voxel.Collections.Level {
     /// Get an empty loaded chunk, used to signify space beyond the level.
     /// </summary>
     /// <returns></returns>
-    public static Chunk getEmptyChunk(bool withEmptyNeighbors = false) {
+    public static Chunk GetEmptyChunk(bool withEmptyNeighbors = false) {
       IVoxelChunk[] emptyNeighbors = null;
       if (withEmptyNeighbors) {
         emptyNeighbors = new IVoxelChunk[Directions.All.Length];
         foreach(Directions.Direction direction in Directions.All) {
-          emptyNeighbors[direction.Value] = getEmptyChunk();
+          emptyNeighbors[direction.Value] = GetEmptyChunk();
         }
       }
       Chunk emptyChunk = new Chunk(null, emptyNeighbors);

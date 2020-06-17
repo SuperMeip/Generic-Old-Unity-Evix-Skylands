@@ -23,6 +23,13 @@ namespace MeepTech.Voxel.Collections.Level {
     }
 
     /// <summary>
+    /// If this chunk has loaded it's mesh data
+    /// </summary>
+    bool isMeshed {
+      get;
+    }
+
+    /// <summary>
     /// get the voxel data for this chunk
     /// </summary>
     IVoxelStorage voxels {

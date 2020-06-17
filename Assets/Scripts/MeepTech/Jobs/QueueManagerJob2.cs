@@ -12,6 +12,11 @@ namespace MeepTech.Jobs {
     where QueueItemType : IComparable<QueueItemType> {
 
     /// <summary>
+    /// The default maximum child job count
+    /// </summary>
+    public const int DefaultMaxChildJobCount = 100;
+
+    /// <summary>
     /// The currently queued up job count
     /// </summary>
     public int queueCount {
@@ -34,6 +39,16 @@ namespace MeepTech.Jobs {
     protected ConcurrentDictionary<QueueItemType, bool> canceledItems;
 
     /// <summary>
+    /// Used for reporting what items this job manager is currently running on
+    /// </summary>
+    ConcurrentDictionary<QueueItemType, IThreadedJob> runningChildJobs;
+
+    /// <summary>
+    /// (Optional) a bottleneck for queue items to process at once
+    /// </summary>
+    int queueItemsToProcessBottleneck = 0;
+
+    /// <summary>
     /// The max number of child jobs allowed
     /// </summary>
     int maxChildJobsCount;
@@ -47,12 +62,14 @@ namespace MeepTech.Jobs {
     /// Create a new job, linked to the level
     /// </summary>
     /// <param name="level"></param>
-    protected QueueManagerJob2(int maxChildJobsCount = 25) {
+    protected QueueManagerJob2(int maxChildJobsCount = DefaultMaxChildJobCount, int queueBottleneck = 0) {
       runningJobCount = 0;
       this.maxChildJobsCount = maxChildJobsCount;
+      queueItemsToProcessBottleneck = queueBottleneck;
       queue = new List<QueueItemType>();
       newlyAddedQueueItems = new ConcurrentBag<QueueItemType>();
       canceledItems = new ConcurrentDictionary<QueueItemType, bool>();
+      runningChildJobs = new ConcurrentDictionary<QueueItemType, IThreadedJob>();
     }
 
     /// <summary>
@@ -60,7 +77,7 @@ namespace MeepTech.Jobs {
     /// </summary>
     /// <param name="queueObjects"></param>
     /// <param name="sortQueue">whether or not to sort the queue on add.</param>
-    public void enQueue(QueueItemType[] queueObjects) {
+    public void enqueue(QueueItemType[] queueObjects) {
       foreach (QueueItemType queueObject in queueObjects) {
         // if the chunk has already been canceled, don't requeue it right now
         if (!(canceledItems.TryGetValue(queueObject, out bool hasBeenCanceled) && hasBeenCanceled)) {
@@ -70,12 +87,7 @@ namespace MeepTech.Jobs {
 
       // if the queue manager job isn't running, start it
       if (!isRunning) {
-        try {
-          start();
-          // if two items were enqueued quick sometimes it can try to start the same threat twice
-        } catch (System.Threading.ThreadStateException) {
-          return;
-        }
+        start();
       }
     }
 
@@ -84,7 +96,7 @@ namespace MeepTech.Jobs {
     /// </summary>
     /// <param name="queueObject"></param>
     /// <param name="sortQueue">whether or not to sort the queue on add.</param>
-    public void deQueue(QueueItemType[] queueObjects, bool sortQueue = true) {
+    public void dequeue(QueueItemType[] queueObjects) {
       if (isRunning) {
         foreach (QueueItemType queueObject in queueObjects) {
           if (queue.Contains(queueObject)) {
@@ -95,10 +107,26 @@ namespace MeepTech.Jobs {
     }
 
     /// <summary>
+    /// Get all the queue items in an array
+    /// </summary>
+    /// <returns></returns>
+    public QueueItemType[] getAllQueuedItems() {
+      return queue.ToArray();
+    }
+
+    /// <summary>
+    /// Get all the items this job manager is currently running on
+    /// </summary>
+    /// <returns></returns>
+    public QueueItemType[] getAllItemsWithRunningJobs() {
+      return runningChildJobs.Keys.ToArray();
+    }
+
+    /// <summary>
     /// Get the type of job we're managing in this queue
     /// </summary>
     /// <returns></returns>
-    protected abstract QueueTaskChildJob<QueueItemType> getChildJob(QueueItemType queueObject);
+    protected abstract IThreadedJob getChildJob(QueueItemType queueObject);
 
     /// <summary>
     /// validate queue items
@@ -141,7 +169,14 @@ namespace MeepTech.Jobs {
     protected override void jobFunction() {
       while (newlyAddedQueueItems.Count > 0 || queue.Count > 0) {
         queueNewlyAddedItems();
+        int queueItemsProcessed = -1;
         queue.RemoveAll(queueItem => {
+          // incrememnt the bottleneck checker
+          queueItemsProcessed++;
+          if (queueItemsToProcessBottleneck > 0 && queueItemsProcessed >= queueItemsToProcessBottleneck) {
+            return false;
+          }
+
           // if the item has been canceled. Remove it.
           if (itemIsCanceled(queueItem)) {
             return true;
@@ -156,7 +191,9 @@ namespace MeepTech.Jobs {
           // if we have space, pop off the top of the queue and run it as a job.
           if (runningJobCount < maxChildJobsCount && itemIsReady(queueItem)) {
             runningJobCount++;
-            getChildJob(queueItem).start();
+            IThreadedJob childJob = getChildJob(queueItem);
+            runningChildJobs.TryAdd(queueItem, childJob);
+            childJob.start();
             return true;
           }
 
@@ -168,7 +205,8 @@ namespace MeepTech.Jobs {
     /// <summary>
     /// De-increment how many jobs are running when one finishes.
     /// </summary>
-    internal virtual void onJobComplete() {
+    internal virtual void onJobComplete(QueueItemType queueItem) {
+      runningChildJobs.TryRemove(queueItem, out _);
       runningJobCount--;
     }
 
@@ -219,7 +257,8 @@ namespace MeepTech.Jobs {
     /// <summary>
     /// Child job for doing work on objects in the queue
     /// </summary>
-    protected abstract class QueueTaskChildJob<ParentQueueItemType> : ThreadedJob
+    protected abstract class QueueTaskChildJob<ParentQueueManagerType, ParentQueueItemType> : ThreadedJob
+      where ParentQueueManagerType : QueueManagerJob2<ParentQueueItemType>
       where ParentQueueItemType : IComparable<ParentQueueItemType> {
 
       /// <summary>
@@ -230,12 +269,12 @@ namespace MeepTech.Jobs {
       /// <summary>
       /// The cancelation sources for waiting jobs
       /// </summary>
-      protected QueueManagerJob2<ParentQueueItemType> jobManager;
+      protected ParentQueueManagerType jobManager;
 
       /// <summary>
       /// Constructor
       /// </summary>
-      protected QueueTaskChildJob(ParentQueueItemType queueItem, QueueManagerJob2<ParentQueueItemType> jobManager) {
+      protected QueueTaskChildJob(ParentQueueItemType queueItem, ParentQueueManagerType jobManager) {
         this.queueItem = queueItem;
         this.jobManager = jobManager;
       }
@@ -258,7 +297,7 @@ namespace MeepTech.Jobs {
       /// On done, set the space free in the parent job
       /// </summary>
       protected override void finallyDo() {
-        jobManager.onJobComplete();
+        jobManager.onJobComplete(queueItem);
       }
     }
   }

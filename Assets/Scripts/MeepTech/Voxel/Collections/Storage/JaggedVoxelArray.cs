@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Runtime.Serialization;
 
 namespace MeepTech.Voxel.Collections.Storage {
 
@@ -6,34 +7,47 @@ namespace MeepTech.Voxel.Collections.Storage {
   /// Jagged array dynamic block storage
   /// </summary>
   [Serializable]
-  public class VoxelJaggedArray : VoxelStorage {
+  public class JaggedVoxelArray : VoxelStorage {
 
     /// <summary>
     /// block data
     /// </summary>
-    byte[][][] points;
+    byte[][][] voxels;
 
     /// <summary>
     /// if this is empty
     /// </summary>
     public override bool isEmpty
-      => points == null;
+      => voxels == null;
+
+    ///// CONSTRUCTORS
 
     /// <summary>
     /// make a new blockdata array
     /// </summary>
     /// <param name="bounds"></param>
-    public VoxelJaggedArray(Coordinate bounds) : base(bounds) {
-      points = null;
+    public JaggedVoxelArray(Coordinate bounds) : base(bounds) {
+      voxels = null;
     }
 
     /// <summary>
     /// make a new blockdata array
     /// </summary>
     /// <param name="bounds"></param>
-    public VoxelJaggedArray(int bound) : base(bound) {
-      points = null;
+    public JaggedVoxelArray(int bound) : base(bound) {
+      voxels = null;
     }
+
+    /// <summary>
+    /// Used for deserialization
+    /// </summary>
+    /// <param name="info"></param>
+    /// <param name="context"></param>
+    public JaggedVoxelArray(SerializationInfo info, StreamingContext context) : base(info) {
+      voxels = (byte[][][])info.GetValue("voxels", typeof(byte[][][]));
+    }
+
+    ///// PUBLIC FUNCTIONS
 
     /// <summary>
     /// get a point
@@ -61,6 +75,18 @@ namespace MeepTech.Voxel.Collections.Storage {
     }
 
     /// <summary>
+    /// Get the data object for this serialized voxel array
+    /// </summary>
+    /// <param name="info"></param>
+    /// <param name="context"></param>
+    public override void GetObjectData(SerializationInfo info, StreamingContext context) {
+      info.AddValue("bounds", bounds, typeof(Coordinate));
+      info.AddValue("voxels", voxels, typeof(byte[][][]));
+    }
+
+    ///// SUB FUNCTIONS
+
+    /// <summary>
     /// Set the value at the given point
     /// </summary>
     /// <param name="location"></param>
@@ -69,49 +95,49 @@ namespace MeepTech.Voxel.Collections.Storage {
     void setValue(Coordinate location, byte value) {
       // if the block value is zero and we'd need to resize the array to store it:
       //  just don't it's empty.
-      if (points == null) {
+      if (voxels == null) {
         if (value != 0) {
           initilizeJaggedArray(location.x + 1);
         } else return;
       }
 
       // If this is beyond our current X, resize the x array
-      if (points.Length <= location.x) {
+      if (voxels.Length <= location.x) {
         if (value != 0) {
-          Array.Resize(ref points, location.x + 1);
+          Array.Resize(ref voxels, location.x + 1);
         } else return;
       }
 
       // if there's no Y array at the X location, add one
-      if (points[location.x] == null) {
+      if (voxels[location.x] == null) {
         if (value != 0) {
-          points[location.x] = new byte[location.y + 1][];
+          voxels[location.x] = new byte[location.y + 1][];
         } else return;
       }
 
       // if the Y array is too small, resize it
-      if (points[location.x].Length <= location.y) {
+      if (voxels[location.x].Length <= location.y) {
         if (value != 0) {
-          Array.Resize(ref points[location.x], location.y + 1);
+          Array.Resize(ref voxels[location.x], location.y + 1);
         } else return;
       }
 
       // if there's no Z array at our location, add one
-      if (points[location.x][location.y] == null) {
+      if (voxels[location.x][location.y] == null) {
         if (value != 0) {
-          points[location.x][location.y] = new byte[location.z + 1];
+          voxels[location.x][location.y] = new byte[location.z + 1];
         } else return;
       }
 
       // if the Z array is too small, resize it
-      if (points[location.x][location.y].Length <= location.z) {
+      if (voxels[location.x][location.y].Length <= location.z) {
         if (value != 0) {
-          Array.Resize(ref points[location.x][location.y], location.z + 1);
+          Array.Resize(ref voxels[location.x][location.y], location.z + 1);
         } else return;
       }
 
       /// set the block value
-      points[location.x][location.y][location.z] = value;
+      voxels[location.x][location.y][location.z] = value;
     }
 
     /// <summary>
@@ -120,11 +146,11 @@ namespace MeepTech.Voxel.Collections.Storage {
     /// <param name="location"></param>
     /// <returns></returns>
     byte tryToGetValue(Coordinate location) {
-      return (byte)(points != null
-        ? location.x < points.Length
-          ? location.y < points[location.x].Length
-            ? location.z < points[location.x][location.y].Length
-              ? points[location.x][location.y][location.z]
+      return (byte)(voxels != null
+        ? location.x < voxels.Length
+          ? location.y < voxels[location.x].Length
+            ? location.z < voxels[location.x][location.y].Length
+              ? voxels[location.x][location.y][location.z]
               : 0
             : 0
           : 0
@@ -137,7 +163,7 @@ namespace MeepTech.Voxel.Collections.Storage {
     /// </summary>
     /// <param name="x"></param>
     void initilizeJaggedArray(int x = -1) {
-      points = new byte[x == -1 ? bounds.x : x][][];
+      voxels = new byte[x == -1 ? bounds.x : x][][];
     }
   }
 }

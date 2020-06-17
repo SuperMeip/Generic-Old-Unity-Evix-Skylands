@@ -1,4 +1,9 @@
-﻿using MeepTech.GamingBasics;
+﻿using Evix.EventSystems;
+using MeepTech.GamingBasics;
+using MeepTech.Voxel.Collections.Level;
+using MeepTech.Voxel.Collections.Level.Management;
+using MeepTech.Voxel.Collections.Storage;
+using MeepTech.Voxel.Generation.Mesh;
 using MeepTech.Voxel.Generation.Sources;
 using UnityEngine;
 
@@ -16,36 +21,53 @@ namespace Evix.Controllers.Unity {
     /// </summary>
     public LevelController levelController;
 
-    public float XWaveFrequency = 0.1f;
-    public float ZWaveFrequency = 0.1f;
-    public float Smoothness = -1f;
-    public float value4 = 1f;
-    public float value5 = 0f;
-    public float value6 = 1f;
-    public float value7 = 10f;
-    public float value8 = 20f;
+
+    ///// SETUP VARS
     public float SeaLevel = 30.0f;
+    public Vector3 levelSize = new Vector3(1000, 2, 1000);
 
-    IVoxelSource voxelSource;
+    public int activeChunkRadius = 10;
+    public int activeChunkHeightOverride = 0;
 
-    // Start is called before the first frame update
+    public int meshedChunkBuffer = 10;
+    public int meshedChunkBufferHeightOverride = 0;
+
+    public int loadedChunkBuffer = 10;
+    public int loadedChunkHeightBufferOverride = 0;
+
     void Awake() {
-      voxelSource = getConfiguredPlainSource();
-      World.InitializeTestWorld(levelController, voxelSource, currentFocus);
-    }
+      // set up player 1
+      World.SetPlayer(new Player(), 1);
 
-    WaveSource getConfiguredWaveSource() {
-      WaveSource newSource = new WaveSource();
-      newSource.xWaveFrequency = XWaveFrequency;
-      newSource.zWaveFrequency = ZWaveFrequency;
-      newSource.smoothness = Smoothness;
-      newSource.value4 = value4;
-      newSource.value5 = value5;
-      newSource.value6 = value6;
-      newSource.value7 = value7;
-      newSource.value8 = value8;
+      // set up the level
+      ILevel level = Level.Create<HashedChunkDataStorage>(
+        levelSize,
+        getConfiguredPlainSource(),
+        new MarchGenerator(),
+        new IChunkResolutionAperture[] {
+          new LoadedChunkVoxelDataResolutionAperture<FlatVoxelArray>(
+            activeChunkRadius + meshedChunkBuffer + loadedChunkBuffer,
+            activeChunkHeightOverride + meshedChunkBufferHeightOverride + loadedChunkHeightBufferOverride
+          ),
+          new LoadedChunkMeshDataResolutionAperture(
+            activeChunkRadius + meshedChunkBuffer,
+            activeChunkHeightOverride + meshedChunkBufferHeightOverride
+          ),
+          new ActivateGameobjectResolutionAperture(activeChunkRadius, activeChunkHeightOverride)
+        }
+      );
 
-      return newSource;
+      // set up the level controller
+      World.EventSystem.subscribe(
+        levelController,
+        WorldEventSystem.Channels.ChunkActivationUpdates
+      );
+      levelController.initializeFor(level);
+      World.setActiveLevel(levelController.level);
+
+      // initialize the focus
+      currentFocus.setPosition((level.chunkBounds - (0, 1, 0)) / 2 * Chunk.Diameter);
+      level.spawnFocus(currentFocus);
     }
 
     FlatPlainsSource getConfiguredPlainSource() {

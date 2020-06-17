@@ -3,6 +3,7 @@ using System.Linq;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using System.Runtime.Serialization;
 
 namespace MeepTech.Voxel {
 
@@ -473,7 +474,7 @@ namespace MeepTech.Voxel {
   /// A block position in a level
   /// </summary>
   [System.Serializable]
-  public struct Coordinate : IComparable<Coordinate>, IEquatable<Coordinate> {
+  public struct Coordinate : IComparable<Coordinate>, IEquatable<Coordinate>, ISerializable {
 
     /// <summary>
     /// The coordinate for 0, 0, 0
@@ -521,6 +522,8 @@ namespace MeepTech.Voxel {
       get => (x, 0, z);
     }
 
+    ///// CONSTRUCTORS
+
     /// <summary>
     /// Create a coordinate with one value for all 3
     /// </summary>
@@ -544,6 +547,20 @@ namespace MeepTech.Voxel {
     }
 
     /// <summary>
+    /// Deserialize a coordinate
+    /// </summary>
+    /// <param name="info"></param>
+    /// <param name="context"></param>
+    public Coordinate(SerializationInfo info, StreamingContext context) {
+      x = (int)info.GetValue("x", typeof(int));
+      y = (int)info.GetValue("y", typeof(int));
+      z = (int)info.GetValue("z", typeof(int));
+      isInitialized = (bool)info.GetValue("isInitialized", typeof(bool));
+    }
+
+    ///// IMPLICIT CONVERSIONS
+
+    /// <summary>
     /// Turn a set of coordinates into a coordinate.
     /// </summary>
     /// <param name="coordinates"></param>
@@ -558,6 +575,8 @@ namespace MeepTech.Voxel {
     public static implicit operator Coordinate(Vector3 coordinate) {
       return new Coordinate((int)coordinate.x, (int)coordinate.y, (int)coordinate.z);
     }
+
+    ///// OPPERATOR OVERRIDES
 
     public static Coordinate operator +(Coordinate a, Coordinate b) {
       return (
@@ -611,18 +630,7 @@ namespace MeepTech.Voxel {
       return a + (-b);
     }
 
-    /// <summary>
-    /// The unity/world position for this level location
-    /// </summary>
-    /*public Vector3 worldPosition {
-      get {
-        return new Vector3(
-          x * Level.BLOCK_SIZE,
-          y * Level.BLOCK_SIZE,
-          z * Level.BLOCK_SIZE
-        );
-      }
-    }*/
+    ///// PUBLIC FUNCTIONS
 
     /// <summary>
     /// Get the coordinate one over in another direction.
@@ -684,16 +692,20 @@ namespace MeepTech.Voxel {
     }
 
     /// <summary>
-    /// Add the value to x y and z of this coordinate
+    /// Get the distance between this and otherPoint with more weight on y
     /// </summary>
-    /// <param name="i">the value to add to all axis</param>
+    /// <param name="otherPoint"></param>
     /// <returns></returns>
-    public Coordinate plus(int i) {
-      return new Coordinate(
-        x + i,
-        y + i,
-        z + i
+    public float distanceYFlattened(Coordinate otherPoint, float yExponent = 5f) {
+      float a = (float)Math.Pow(x - otherPoint.x, 2);
+      float b = (float)Math.Pow(y - otherPoint.y, yExponent);
+      float c = (float)Math.Pow(z - otherPoint.z, 2);
+
+      float d = (float)Math.Sqrt(
+        a + b + c
       );
+
+      return d;
     }
 
     /// <summary>
@@ -815,14 +827,6 @@ namespace MeepTech.Voxel {
       return points.ToArray();
     }
 
-    public override string ToString() {
-      return "{" + x.ToString() + ", " + y.ToString() + ", " + z.ToString() + "}";
-    }
-
-    public string ToSaveString() {
-      return $"{x}-{y}-{z}";
-    }
-
     /// <summary>
     /// Get all points in one set of bounds but not the other
     /// </summary>
@@ -834,12 +838,30 @@ namespace MeepTech.Voxel {
       // For all points within bounds set A
       boundsA[0].until(boundsA[1], coordinate => {
         // check if that point is in bounds set B
-        if (coordinate.isWithin(boundsB)) {
+        if (!coordinate.isWithin(boundsB)) {
           diffPoints.Add(coordinate);
         }
       });
 
       return diffPoints.ToArray();
+    }
+
+    /// <summary>
+    /// Get a file saveable string name for this coordinate
+    /// </summary>
+    /// <returns></returns>
+    public string ToSaveString() {
+      return $"{x}-{y}-{z}";
+    }
+
+    ///// BASE OVERRIDES
+
+    /// <summary>
+    /// Tostring override
+    /// </summary>
+    /// <returns></returns>
+    public override string ToString() {
+      return "{" + x.ToString() + ", " + y.ToString() + ", " + z.ToString() + "}";
     }
 
     /// <summary>
@@ -885,6 +907,18 @@ namespace MeepTech.Voxel {
         && other.y == y
         && other.z == z
         && other.isInitialized == isInitialized;
+    }
+
+    /// <summary>
+    /// Serialization override
+    /// </summary>
+    /// <param name="info"></param>
+    /// <param name="context"></param>
+    public void GetObjectData(SerializationInfo info, StreamingContext context) {
+      info.AddValue("x", x, typeof(int));
+      info.AddValue("y", y, typeof(int));
+      info.AddValue("z", z, typeof(int));
+      info.AddValue("isInitialized", isInitialized, typeof(bool));
     }
   }
 

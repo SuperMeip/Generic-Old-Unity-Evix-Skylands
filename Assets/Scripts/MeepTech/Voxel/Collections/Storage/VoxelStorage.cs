@@ -1,9 +1,13 @@
 ﻿using System;
+using System.Runtime.Serialization;
 
 namespace MeepTech.Voxel.Collections.Storage {
 
+  /// <summary>
+  /// Base class for simple voxel storage
+  /// </summary>
   [Serializable]
-  public abstract class VoxelStorage : IVoxelStorage {
+  public abstract class VoxelStorage : IVoxelStorage, ISerializable {
 
     /// <summary>
     /// The itteratable bounds of this collection of voxels, x, y, and z
@@ -37,6 +41,15 @@ namespace MeepTech.Voxel.Collections.Storage {
     }
 
     /// <summary>
+    /// Used for deserialization base
+    /// </summary>
+    /// <param name="info"></param>
+    /// <param name="context"></param>
+    protected VoxelStorage(SerializationInfo info) {
+      bounds = (Coordinate)info.GetValue("bounds", typeof(Coordinate));
+    }
+
+    /// <summary>
     /// Base constructor all same bounds
     /// </summary>
     /// <param name="bound">x,y,and z's shared max bound</param>
@@ -55,6 +68,13 @@ namespace MeepTech.Voxel.Collections.Storage {
     /// <param name="location">the x,y,z of the voxel to set</param>
     /// <param name="newVoxelType">the new type to set for the given voxel</param>
     public abstract void set(Coordinate location, byte newVoxelType);
+
+    /// <summary>
+    /// Serialization
+    /// </summary>
+    /// <param name="info"></param>
+    /// <param name="context"></param>
+    public abstract void GetObjectData(SerializationInfo info, StreamingContext context);
 
     /// <summary>
     /// Overwrite the entire voxel at the given location
