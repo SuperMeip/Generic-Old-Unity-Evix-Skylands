@@ -1,10 +1,5 @@
 ﻿using MeepTech.Voxel.Collections.Level;
 using Evix.EventSystems;
-using MeepTech.Voxel;
-using MeepTech.Voxel.Generation.Mesh;
-using MeepTech.Voxel.Collections.Storage;
-using MeepTech.Voxel.Generation.Sources;
-using MeepTech.Voxel.Generation.Managers;
 using Evix;
 
 namespace MeepTech.GamingBasics {
@@ -43,7 +38,7 @@ namespace MeepTech.GamingBasics {
     /// <summary>
     /// The currently loaded level
     /// </summary>
-    public static ILevel activeLevel {
+    public ILevel activeLevel {
       get;
       protected set;
     }
@@ -70,31 +65,12 @@ namespace MeepTech.GamingBasics {
       Current.players[playerNumber - 1] = player;
     }
 
-    //////// TESTS
-
     /// <summary>
-    /// start test world
+    /// Set a level as the active level of the current world
     /// </summary>
-    public static void InitializeTestWorld(
-      ILevelController levelController,
-      ILevelFocus testFocus
-    ) {
-      SetPlayer(new Player(), 1);
-      activeLevel = levelController.level;
-
-      // set up the level controller.
-      EventSystem.subscribe(
-        activeLevel,
-        WorldEventSystem.Channels.TerrainGeneration
-      );
-      EventSystem.subscribe(
-        levelController,
-        WorldEventSystem.Channels.TerrainGeneration
-      );
-
-      // initialize around a chunk
-      testFocus.spawn(activeLevel.chunkBounds * Chunk.Diameter / 2);
-      testFocus.setActive();
+    /// <param name="level"></param>
+    public static void setActiveLevel(ILevel level) {
+      Current.activeLevel = level;
     }
   }
 }

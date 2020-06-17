@@ -10,7 +10,7 @@ namespace MeepTech.Voxel.Collections.Level {
     /// <summary>
     /// The level this is controlling
     /// </summary>
-    ILevel level {
+    ILevel  level {
       get;
     }
 
@@ -18,6 +18,6 @@ namespace MeepTech.Voxel.Collections.Level {
     /// Initilize this controller for the given level
     /// </summary>
     /// <param name="level"></param>
-    void initializeFor(ILevel level);
+    void initializeFor(ILevel  level);
   }
 }

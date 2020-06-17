@@ -20,17 +20,11 @@ namespace MeepTech.Voxel.Collections.Level {
     Dictionary<long, IMesh> loadedChunkMeshes;
 
     /// <summary>
-    /// The parent level
-    /// </summary>
-    ILevel level;
-
-    /// <summary>
     /// Construct
     /// </summary>
     /// <param name="chunkBounds"></param>
     /// <param name="voxelSource"></param>
-    public HashedChunkDataStorage(ILevel level) {
-      this.level = level;
+    public HashedChunkDataStorage(ILevel level) : base (level) {
       loadedChunkVoxelData = new Dictionary<long, IVoxelStorage>();
       loadedChunkMeshes = new Dictionary<long, IMesh>();
     }

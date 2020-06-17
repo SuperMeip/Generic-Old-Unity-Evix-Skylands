@@ -9,6 +9,20 @@ namespace MeepTech.Voxel.Collections.Level {
   public abstract class ChunkDataStorage : IChunkDataStorage {
 
     /// <summary>
+    /// The parent level
+    /// </summary>
+    protected ILevel level;
+
+    /// <summary>
+    /// Construct
+    /// </summary>
+    /// <param name="chunkBounds"></param>
+    /// <param name="voxelSource"></param>
+    public ChunkDataStorage(ILevel level) {
+      this.level = level;
+    }
+
+    /// <summary>
     /// Set the given voxeldata to the given chunk location in this level's active storage/memmory
     /// </summary>
     /// <param name="chunkLocation"></param>

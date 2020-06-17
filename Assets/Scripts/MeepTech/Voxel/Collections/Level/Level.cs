@@ -3,8 +3,9 @@ using MeepTech.Voxel.Collections.Storage;
 using MeepTech.Voxel.Generation.Sources;
 using MeepTech.Voxel.Generation.Mesh;
 using UnityEngine;
-using MeepTech.Voxel.Generation.Managers;
 using MeepTech.GamingBasics;
+using System.Collections.Generic;
+using MeepTech.Voxel.Collections.Level.Management;
 using MeepTech.Events;
 
 namespace MeepTech.Voxel.Collections.Level {
@@ -12,55 +13,12 @@ namespace MeepTech.Voxel.Collections.Level {
   /// <summary>
   /// A collection of chunks, making an enclosed world in game
   /// </summary>
-  public class Level<
-    VoxelStorageType,
-    ChunkDataStorageType,
-    MeshGeneratorType,
-    ChunkFileDataLoadingManagerType,
-    ChunkVoxelDataGenerationManagerType,
-    ChunkMeshGenerationManagerType
-  > : ILevel
-    where VoxelStorageType : IVoxelStorage
-    where ChunkDataStorageType : IChunkDataStorage
-    where MeshGeneratorType : IVoxelMeshGenerator
-    where ChunkFileDataLoadingManagerType : ChunkFileDataLoadingManager<VoxelStorageType>
-    where ChunkVoxelDataGenerationManagerType : ChunkVoxelDataGenerationManager<VoxelStorageType>
-    where ChunkMeshGenerationManagerType : ChunkMeshGenerationManager {
+  public class Level : ILevel {
 
     /// <summary>
-    /// The width of the active chunk area in chunks
+    /// Resolutions for how loaded chunks 
     /// </summary>
-    public int meshedChunkDiameter {
-      get;
-    } = 20;
-
-    /// <summary>
-    /// The buffer diameter around rendered chunks to also load into memmory
-    /// </summary>
-    public int chunkLoadBuffer {
-      get;
-    } = 10;
-
-    /// <summary>
-    /// How many chunks down to load (temp);
-    /// </summary>
-    public int chunksBelowToMesh {
-      get;
-    } = 5;
-
-    /// <summary>
-    /// The width of the active chunk area in chunks
-    /// </summary>
-    int loadedChunkDiameter {
-      get => meshedChunkDiameter + chunkLoadBuffer * 2;
-    }
-
-    /// <summary>
-    /// The width of the active chunk area in chunks
-    /// </summary>
-    int chunksBelowToLoad {
-      get => chunksBelowToMesh + chunkLoadBuffer;
-    }
+    public enum FocusResolutionLayers { Loaded, Meshed, Visible };
 
     /// <summary>
     /// The overall bounds of the level, max x y and z
@@ -78,75 +36,101 @@ namespace MeepTech.Voxel.Collections.Level {
     }
 
     /// <summary>
-    /// The current center of all loaded chunks, usually based on player location
+    /// The chunk data storate
     /// </summary>
-    public ILevelFocus focus {
+    internal IChunkDataStorage chunkDataStorage {
       get;
-      protected set;
+      private set;
     }
 
     /// <summary>
-    /// Manager in charge of loading and unloading chunk data from files
+    /// The source of voxels for this level
     /// </summary>
-    protected ChunkFileDataLoadingManagerType chunkFileDataLoadingManager;
+    internal IVoxelSource voxelSource {
+      get;
+    }
 
     /// <summary>
-    /// Manager in charge of generatig new chunk meshes.
+    /// The voxel generator this level uses.
     /// </summary>
-    protected ChunkMeshGenerationManagerType chunkMeshGenerationManager;
+    internal IVoxelMeshGenerator meshGenerator {
+      get;
+    }
 
     /// <summary>
-    /// The manager that handles generating the voxels for a chunk
+    /// The current highest assigned focus id.
     /// </summary>
-    protected ChunkVoxelDataGenerationManagerType chunkVoxelDataGenerationManager;
+    int currentMaxFocusID = -1;
 
     /// <summary>
-    /// The chunk data storate
+    /// The chunk resolution Apertures for this level by FocusResolutionLayers type.
     /// </summary>
-    IChunkDataStorage chunkDataStorage;
-
-#if !DEBUG
-    /// <summary>
-    /// The coordinates indicating the two chunks the extreems of what chunks are to be loaded from memmory:
-    ///   0: south bottom west most loaded chunk
-    ///   1: north top east most loaded chunk 
-    /// </summary>
-    Coordinate[] meshedChunkBounds;
+    IChunkResolutionAperture[] resolutionApertures;
 
     /// <summary>
-    /// The coordinates indicating the two chunks the extreems of what chunks are to be meshed.
-    ///   0: south bottom west most loaded chunk
-    ///   1: north top east most loaded chunk 
+    /// The foci this level is loaded around managed by assigned ID
     /// </summary>
-    Coordinate[] loadedChunkBounds;
-#endif
+    Dictionary<int, ILevelFocus> levelFociByID;
 
     /// <summary>
     /// Create a new level
     /// </summary>
     /// <param name="seed"></param>
     /// <param name="chunkBounds">the max x y and z chunk sizes of the world</param>
-    public Level(
+    Level(
       Coordinate chunkBounds,
       IVoxelSource voxelSource,
-      int meshedChunkDiameter = 15,
-      int chunkLoadBuffer = 5,
-      int chunksBelowToMesh = 5
+      IVoxelMeshGenerator meshGenerator,
+      IChunkResolutionAperture[] resolutionApertures
     ) {
       this.chunkBounds   = chunkBounds;
-      this.meshedChunkDiameter = meshedChunkDiameter;
-      this.chunkLoadBuffer = chunkLoadBuffer;
-      this.chunksBelowToMesh = chunksBelowToMesh;
+      this.voxelSource = voxelSource;
+      this.meshGenerator = meshGenerator;
+      this.resolutionApertures = resolutionApertures;
 
-      IVoxelMeshGenerator voxelMeshGenerator = (MeshGeneratorType)Activator.CreateInstance(typeof(MeshGeneratorType));
-      chunkDataStorage = (ChunkDataStorageType)Activator.CreateInstance(typeof(ChunkDataStorageType), this);
-      chunkFileDataLoadingManager = (ChunkFileDataLoadingManagerType)Activator.CreateInstance(typeof(ChunkFileDataLoadingManagerType), this, chunkDataStorage);
-      chunkVoxelDataGenerationManager = (ChunkVoxelDataGenerationManagerType)Activator.CreateInstance(typeof(ChunkVoxelDataGenerationManagerType), this, chunkDataStorage, voxelSource);
-      chunkMeshGenerationManager = (ChunkMeshGenerationManagerType)Activator.CreateInstance(typeof(ChunkMeshGenerationManagerType), this, chunkDataStorage, voxelMeshGenerator);
-      World.EventSystem.subscribe(chunkFileDataLoadingManager, Evix.EventSystems.WorldEventSystem.Channels.TerrainGeneration);
-      World.EventSystem.subscribe(chunkVoxelDataGenerationManager, Evix.EventSystems.WorldEventSystem.Channels.TerrainGeneration);
-      World.EventSystem.subscribe(chunkMeshGenerationManager, Evix.EventSystems.WorldEventSystem.Channels.TerrainGeneration);
+      levelFociByID = new Dictionary<int, ILevelFocus>();
+
+      /// subscribe all apetures to the terrain gen channel
+      foreach (ChunkResolutionAperture resolutionAperture in resolutionApertures) {
+        resolutionAperture.setLevel(this);
+        World.EventSystem.subscribe(resolutionAperture, Evix.EventSystems.WorldEventSystem.Channels.LevelFocusUpdates);
+      }
+
       seed = voxelSource.seed;
+    }
+
+    /// <summary>
+    /// Create a new level using the given chunk storage type
+    /// </summary>
+    /// <typeparam name="ChunkDataStorageType"></typeparam>
+    /// <param name="chunkBounds"></param>
+    /// <param name="voxelSource"></param>
+    /// <param name="meshGenerator"></param>
+    /// <param name="chunkResolutionManagerTypes"></param>
+    /// <returns></returns>
+    public static Level Create<ChunkDataStorageType> (
+      Coordinate chunkBounds,
+      IVoxelSource voxelSource,
+      IVoxelMeshGenerator meshGenerator,
+      IChunkResolutionAperture[] chunkResolutionManagerTypes
+    ) where ChunkDataStorageType : IChunkDataStorage {
+      Level level = new Level(chunkBounds, voxelSource, meshGenerator, chunkResolutionManagerTypes);
+      ChunkDataStorageType chunkDataStorage = (ChunkDataStorageType)Activator.CreateInstance(typeof(ChunkDataStorageType), level);
+      level.chunkDataStorage = chunkDataStorage;
+
+      return level;
+    }
+
+    /// <summary>
+    /// Spawn a new level focus in this level
+    /// </summary>
+    /// <param name="newFocus"></param>
+    public void spawnFocus(ILevelFocus newFocus) {
+      levelFociByID[++currentMaxFocusID] = newFocus;
+      World.EventSystem.notifyAllOf(
+        new SpawnFocusEvent(newFocus)
+      );
+      newFocus.setActive();
     }
 
     /// <summary>
@@ -158,8 +142,8 @@ namespace MeepTech.Voxel.Collections.Level {
     /// <returns>the chunk data or null if there's none loaded</returns>
     public IVoxelChunk getChunk(Coordinate chunkLocation, bool withMeshes = false, bool withNeighbors = false, bool withNeighborsNeighbors = false, bool fullNeighborEncasement = false) {
       // just get an empty chunk for this one if this is out of bounds
-      if (!chunkIsWithinLoadedBounds(chunkLocation)) {
-        return Chunk.getEmptyChunk(withNeighbors);
+      if (!chunkLocation.isWithin(Coordinate.Zero, chunkBounds)) {
+        return Chunk.GetEmptyChunk(withNeighbors);
       }
 
       IVoxelStorage voxels = chunkDataStorage.getChunkVoxelData(chunkLocation);
@@ -177,158 +161,126 @@ namespace MeepTech.Voxel.Collections.Level {
     }
 
     /// <summary>
-    /// Get if the given chunkLocation is loaded
+    /// Get the id for the given level focus
+    /// </summary>
+    /// <param name="focus"></param>
+    /// <returns></returns>
+    public int getFocusID(ILevelFocus focus) {
+      foreach(KeyValuePair<int, ILevelFocus> storedFocus in levelFociByID) {
+        if (storedFocus.Value == focus) {
+          return storedFocus.Key;
+        }
+      }
+
+      return -1;
+    }
+
+    /// <summary>
+    /// Get a focus by it's id
+    /// </summary>
+    /// <param name="focusID"></param>
+    /// <returns></returns>
+    public ILevelFocus getFocusByID(int focusID) {
+      return levelFociByID[focusID];
+    }
+
+    /// <summary>
+    /// do something for each focus in the level
+    /// </summary>
+    /// <param name="action"></param>
+    public void forEachFocus(Action<ILevelFocus> action) {
+      foreach(ILevelFocus focus in levelFociByID.Values) {
+        action(focus);
+      }   
+    }
+
+    /// <summary>
+    /// Check if the chunk is within the given resolution area
     /// </summary>
     /// <param name="chunkLocation"></param>
+    /// <param name="focusResolutionLayer"></param>
     /// <returns></returns>
-   public bool chunkIsWithinLoadedBounds(Coordinate chunkLocation) {
-      return chunkLocation.isWithin(loadedChunkBounds);
+    public IChunkResolutionAperture getApetureForResolutionLayer(Level.FocusResolutionLayers resolutionLayer) {
+      return resolutionApertures[(int)resolutionLayer];
     }
 
     /// <summary>
-    /// Get if the given chunkLocation should be meshed
+    /// An event for announcing when the player changes chunk locations
     /// </summary>
-    /// <param name="chunkLocation"></param>
-    /// <returns></returns>
-    public bool chunkIsWithinMeshedBounds(Coordinate chunkLocation) {
-      return chunkLocation.isWithin(meshedChunkBounds);
-    }
+    public struct FocusChangedChunkLocationEvent : IEvent {
 
-    /// <summary>
-    /// Stop all running chunk managers
-    /// </summary>
-    public void stopAllManagers() {
-      chunkFileDataLoadingManager.killAll();
-      chunkVoxelDataGenerationManager.killAll();
-      chunkMeshGenerationManager.killAll();
-    }
+      /// <summary>
+      /// The updated focus
+      /// </summary>
+      public ILevelFocus updatedFocus {
+        get;
+      }
 
-    /// <summary>
-    /// Get notifications from other observers, EX:
-    ///   block breaking and placing
-    ///   player chunk location changes
-    /// </summary>
-    /// <param name="event">The event to notify this observer of</param>
-    /// <param name="origin">(optional) the source of the event</param>
-    public void notifyOf(IEvent @event, IObserver origin = null) {
-      switch (@event) {
-        // when a focus spawns in the level
-        case SpawnFocusEvent fse:
-          initializeAround(fse.spawnedFocalPoint);
-          break;
-        // When the focus moves to a new chunk, adjust the loaded level data around it
-        case FocusChangedChunkLocationEvent _:
-          adjustFocus();
-          break;
-        default:
-          return;
+      /// <summary>
+      /// the name of this event
+      /// </summary>
+      public string name => "Focus Changed Chunk Locations";
+
+      /// <summary>
+      /// Make this kind of event
+      /// </summary>
+      /// <param name="newChunkLocation"></param>
+      public FocusChangedChunkLocationEvent(ILevelFocus updatedFocus) {
+        this.updatedFocus = updatedFocus;
       }
     }
 
     /// <summary>
-    /// initialize this level with the center of loaded chunks fouced on the given location
+    /// An event for announcing when a focus has spawned in the level
     /// </summary>
-    /// <param name="levelFocus">the center point/focus of the loaded chunks, usually a player location</param>
-    void initializeAround(ILevelFocus levelFocus) {
-      focus = levelFocus;
-      loadedChunkBounds = getLoadedChunkBounds(focus);
-      meshedChunkBounds = getMeshedChunkBounds(focus);
-      Coordinate[] chunksToLoad = Coordinate.GetAllPointsBetween(loadedChunkBounds[0], loadedChunkBounds[1]);
-      chunkFileDataLoadingManager.addChunksToLoad(chunksToLoad);
-      Debug.Log($"adding {chunksToLoad.Length} chunks to the loading queue");
+    public struct SpawnFocusEvent : IEvent {
+
+      /// <summary>
+      /// The world location the focus has spawned at
+      /// </summary>
+      public ILevelFocus spawnedFocus {
+        get;
+      }
+
+      /// <summary>
+      /// the name of this event
+      /// </summary>
+      public string name => "Focus Spawned";
+
+      /// <summary>
+      /// Make this kind of event
+      /// </summary>
+      /// <param name="newChunkLocation"></param>
+      public SpawnFocusEvent(ILevelFocus spawnedFocus) {
+        this.spawnedFocus = spawnedFocus;
+      }
     }
 
     /// <summary>
-    /// Move the focus/central loaded point of the level by one chunk in the given direction
+    /// An event for announcing when a focus has left the level
     /// </summary>
-    /// <param name="newFocus">The new focal chunkLocation</param>
-    void adjustFocus() {
-      Coordinate[] newLoadedChunkBounds = getLoadedChunkBounds(focus);
-      Coordinate[] newChunksToLoad = Coordinate.GetPointDiff(newLoadedChunkBounds, loadedChunkBounds);
-      Coordinate[] oldChunksToUnload = Coordinate.GetPointDiff(loadedChunkBounds, newLoadedChunkBounds);
+    public struct FocusLeftEvent : IEvent {
 
-      // set the new bounds and focus.
-      meshedChunkBounds = getMeshedChunkBounds(focus);
-      loadedChunkBounds = newLoadedChunkBounds;
+      /// <summary>
+      /// The world location the focus has spawned at
+      /// </summary>
+      public ILevelFocus abscondingFocus {
+        get;
+      }
 
-      // queue the collected values
-      chunkFileDataLoadingManager.addChunksToLoad(newChunksToLoad);
-      //chunkFileDataLoadingManager.addChunksToUnload(oldChunksToUnload);
+      /// <summary>
+      /// the name of this event
+      /// </summary>
+      public string name => "Focus Spawned";
+
+      /// <summary>
+      /// Make this kind of event
+      /// </summary>
+      /// <param name="newChunkLocation"></param>
+      public FocusLeftEvent(ILevelFocus abscondingFocus) {
+        this.abscondingFocus = abscondingFocus;
+      }
     }
-
-    /// <summary>
-    /// Get the loaded chunk bounds for a given focus point.
-    /// </summary>
-    /// <param name="focusLocation"></param>
-    Coordinate[] getLoadedChunkBounds(ILevelFocus focus) {
-      Coordinate focusLocation = focus.chunkLocation;
-      return new Coordinate[] {
-        (
-          Math.Max(focusLocation.x - loadedChunkDiameter / 2, 0),
-          Math.Max(focusLocation.y - chunksBelowToLoad, 0),
-          Math.Max(focusLocation.z - loadedChunkDiameter / 2, 0)
-        ),
-        (
-          Math.Min(focusLocation.x + loadedChunkDiameter / 2, chunkBounds.x),
-          chunkBounds.y,
-          Math.Min(focusLocation.z + loadedChunkDiameter / 2, chunkBounds.z)
-        )
-      };
-    }
-
-    /// <summary>
-    /// Get the rendered chunk bounds for a given center point.
-    /// Always trims to X,0,Z
-    /// </summary>
-    /// <param name="focusLocation"></param>
-    Coordinate[] getMeshedChunkBounds(ILevelFocus focus) {
-      Coordinate focusLocation = focus.chunkLocation;
-      return new Coordinate[] {
-        (
-          Math.Max(focusLocation.x - meshedChunkDiameter / 2, 0),
-          Math.Max(focusLocation.y - chunksBelowToMesh, 0),
-          Math.Max(focusLocation.z - meshedChunkDiameter / 2, 0)
-        ),
-        (
-          Math.Min(focusLocation.x + meshedChunkDiameter / 2, chunkBounds.x),
-          chunkBounds.y,
-          Math.Min(focusLocation.z + meshedChunkDiameter / 2, chunkBounds.z)
-        )
-      };
-    }
-
-#if DEBUG
-
-    /// <summary>
-    /// The coordinates indicating the two chunks the extreems of what chunks are to be loaded from memmory:
-    ///   0: south bottom west most loaded chunk
-    ///   1: north top east most loaded chunk 
-    /// </summary>
-    public Coordinate[] loadedChunkBounds {
-      get;
-      protected set;
-    }
-
-    /// <summary>
-    /// The coordinates indicating the two chunks the extreems of what chunks are to be meshed.
-    ///   0: south bottom west most loaded chunk
-    ///   1: north top east most loaded chunk 
-    /// </summary>
-    public Coordinate[] meshedChunkBounds {
-      get;
-      protected set;
-    }
-
-    /// <summary>
-    /// Get the stats of all the managers this level uses
-    /// </summary>
-    /// <returns></returns>
-    public string getManagerStats() {
-      return chunkFileDataLoadingManager.getCurrentStats() + '\n'
-        + chunkVoxelDataGenerationManager.getCurrentStats() + '\n'
-        + chunkMeshGenerationManager.getCurrentStats();
-    }
-#endif
   }
 
   public static class Vector3LevelUtilities {

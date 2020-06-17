@@ -1,10 +1,13 @@
 ﻿using MeepTech.Events;
+using MeepTech.Voxel.Collections.Level.Management;
+using System;
 
 namespace MeepTech.Voxel.Collections.Level {
+
   /// <summary>
   /// An interface for a level, used to load the block data for a level around a player/focus point
   /// </summary>
-  public interface ILevel: IObserver {
+  public interface ILevel {
 
     /// <summary>
     /// The overall bounds of the level, max x y and z
@@ -21,29 +24,6 @@ namespace MeepTech.Voxel.Collections.Level {
     }
 
     /// <summary>
-    /// The current focus the level is using
-    /// </summary>
-    ILevelFocus focus {
-      get;
-    }
-
-    /// <summary>
-    /// The width of the active chunk area in chunks
-    /// </summary>
-    int meshedChunkDiameter {
-      get;
-    }
-
-    /// <summary>
-    /// The coordinates indicating the two chunks the extreems of what chunks are to be meshed.
-    ///   0: south bottom west most loaded chunk
-    ///   1: north top east most loaded chunk 
-    /// </summary>
-    Coordinate[] meshedChunkBounds {
-      get;
-    }
-
-    /// <summary>
     /// Get the chunk at the given location (if it's loaded)
     /// </summary>
     /// <param name="chunkLocation">the location of the chunk to grab</param>
@@ -54,48 +34,35 @@ namespace MeepTech.Voxel.Collections.Level {
     IVoxelChunk getChunk(Coordinate chunkLocation, bool withMesh = false, bool withNeighbors = false, bool withNeighborsNeighbors = false, bool fullNeighborEncasement = false);
 
     /// <summary>
-    /// Get if the given chunkLocation is loaded
+    /// Add a new focus into this level
     /// </summary>
-    /// <param name="chunkLocation"></param>
+    /// <param name=""></param>
+    void spawnFocus(ILevelFocus newFocus);
+
+    /// <summary>
+    /// Get the id the level is using for the given focus
+    /// </summary>
+    /// <param name="focus"></param>
     /// <returns></returns>
-    bool chunkIsWithinLoadedBounds(Coordinate chunkLocation);
+    int getFocusID(ILevelFocus focus);
 
     /// <summary>
-    /// Get if the given chunkLocation should be meshed
+    /// Get the level focus based on it's id.
     /// </summary>
-    /// <param name="chunkLocation"></param>
+    /// <param name="focus"></param>
     /// <returns></returns>
-    bool chunkIsWithinMeshedBounds(Coordinate chunkLocation);
+    ILevelFocus getFocusByID(int focusID);
 
     /// <summary>
-    /// Stop all running managers used to build this level
-    /// @todo, wrap this up in saveAll as part of closing.
+    /// performa an action on each focus
     /// </summary>
-    /// <returns></returns>
-    void stopAllManagers();
+    /// <param name=""></param>
+    void forEachFocus(Action<ILevelFocus> action);
 
-#if DEBUG
     /// <summary>
-    /// Get stats for the managers used to build this level
+    /// Get the interface for the aperture this level is using for the given chunk resolution layer
     /// </summary>
     /// <returns></returns>
-    string getManagerStats();
-
-    /// <summary>
-    /// The buffer diameter around rendered chunks to also load into memmory
-    /// </summary>
-    int chunkLoadBuffer {
-      get;
-    }
-
-    /// <summary>
-    /// The coordinates indicating the two chunks the extreems of what chunks are to be loaded from memmory:
-    ///   0: south bottom west most loaded chunk
-    ///   1: north top east most loaded chunk 
-    /// </summary>
-    Coordinate[] loadedChunkBounds {
-      get;
-    }
-#endif
+    IChunkResolutionAperture getApetureForResolutionLayer(Level.FocusResolutionLayers resolutionLayer);
   }
 }

@@ -3,8 +3,8 @@ using System.Collections.Concurrent;
 using MeepTech.Voxel.Collections.Level;
 using MeepTech.Events;
 using MeepTech.GamingBasics;
-using MeepTech.Voxel.Generation.Managers;
 using System.Collections.Generic;
+using MeepTech.Voxel.Collections.Level.Management;
 
 namespace Evix.Controllers.Unity {
 
@@ -17,12 +17,6 @@ namespace Evix.Controllers.Unity {
     /// The prefab used to render a chunk in unity.
     /// </summary>
     public GameObject chunkObjectPrefab;
-
-    /// <summary>
-    /// The border of inactive but meshed chunks within our level area
-    /// used because when unity meshes and switches to active at the same time it makes lag
-    /// </summary>
-    public int activeChunkBuffer = 3;
 
     /// <summary>
     /// The level is loaded enough for the manager to begin working
@@ -80,14 +74,9 @@ namespace Evix.Controllers.Unity {
             assignedChunkController.updateMeshWithChunkData();
             // if the chunk is meshed, but not yet active:
           } else if (!assignedChunkController.gameObject.activeSelf) {
-            if (chunkIsWithinActiveBounds(assignedChunkController.chunkLocation)) {
-              assignedChunkController.setObjectActive();
-              return true;
+            assignedChunkController.setObjectActive();
+            return true;
             // make sure to remove still hidden items from the queue when we move away, and to de-mesh them.
-            } else if (!level.chunkIsWithinLoadedBounds(assignedChunkController.chunkLocation.toCoordinate())) {
-              assignedChunkController.deactivateAndClear();
-              return true;
-            }
           }
         }
 
@@ -101,43 +90,8 @@ namespace Evix.Controllers.Unity {
       });
     }
 
-#if DEBUG
-    ///// GUI FUNCTIONS
-
-    void OnDrawGizmos() {
-      // ignore gizmo if we have no level to draw
-      if (!isLoaded || level == null) {
-        return;
-      }
-
-      /// draw the focus
-      Vector3 focalWorldPoint = level.focus.chunkLocation.vec3 * Chunk.Diameter;
-      Gizmos.color = Color.yellow;
-      Gizmos.DrawWireSphere(focalWorldPoint, Chunk.Diameter / 2);
-      /// draw the meshed chunk area
-      float loadedChunkHeight = level.chunkBounds.y * Chunk.Diameter * 0.66f;
-      float meshedChunkDiameter = level.meshedChunkBounds[1].x * Chunk.Diameter - level.meshedChunkBounds[0].x * Chunk.Diameter;
-      Gizmos.color = Color.blue;
-      Gizmos.DrawWireCube(focalWorldPoint, new Vector3(meshedChunkDiameter, loadedChunkHeight, meshedChunkDiameter));
-      /// draw the active chunk area
-      Gizmos.color = Color.green;
-      Gizmos.DrawWireCube(
-        focalWorldPoint, 
-        new Vector3(
-          meshedChunkDiameter - Chunk.Diameter * activeChunkBuffer * 2,
-          loadedChunkHeight,
-          meshedChunkDiameter - Chunk.Diameter * activeChunkBuffer * 2
-        )
-      );
-      /// draw the loaded chunk area
-      float loadedChunkDiameter = level.loadedChunkBounds[1].x * Chunk.Diameter - level.loadedChunkBounds[0].x * Chunk.Diameter;
-      Gizmos.color = Color.yellow;
-      Gizmos.DrawWireCube(focalWorldPoint, new Vector3(loadedChunkDiameter, loadedChunkHeight, loadedChunkDiameter));
-    }
-#endif
-
     ///// PUBLIC FUNCTIONS
-
+    
     /// <summary>
     /// Initilize this chunk controller for it's provided level.
     /// </summary>
@@ -146,13 +100,17 @@ namespace Evix.Controllers.Unity {
         World.Debugger.logError("UnityLevelController Missing chunk prefab, can't work");
       } else if (level == null) {
         World.Debugger.logError("No level provided to level controller");
-      } else  {
+      } else {
+        /// init
         this.level = level;
         chunksWaitingForAFreeController = new ConcurrentBag<Vector3>();
         chunkControllerAssignmentWaitQueue = new List<Vector3>();
         chunkControllersAssignedChunks = new ConcurrentBag<ChunkController>();
         chunkControllerActivationWaitQueue = new List<ChunkController>();
-        chunkControllerPool = new ChunkController[level.meshedChunkDiameter * level.meshedChunkDiameter * level.chunkBounds.y * 2];
+
+        // build the controller pool based on the maxed meshed chunk area we should ever have:
+        IChunkResolutionAperture meshResolutionAperture = level.getApetureForResolutionLayer(Level.FocusResolutionLayers.Meshed);
+        chunkControllerPool = new ChunkController[meshResolutionAperture.managedChunkRadius * meshResolutionAperture.managedChunkRadius * level.chunkBounds.y * 2];
         for (int index = 0; index < chunkControllerPool.Length; index++) {
           // for each chunk we want to be able to render at once, create a new pooled gameobject for it with the prefab that has a unitu chunk controller on it
           GameObject chunkObject = Instantiate(chunkObjectPrefab);
@@ -168,6 +126,7 @@ namespace Evix.Controllers.Unity {
           }
         }
 
+        /// this controller is now loaded
         isLoaded = true;
       }
     }
@@ -179,6 +138,7 @@ namespace Evix.Controllers.Unity {
       level = null;
       isLoaded = false;
       chunkControllerActivationWaitQueue = null;
+      chunkControllerAssignmentWaitQueue = null;
       foreach (ChunkController chunkController in chunkControllerPool) {
         if (chunkController != null) {
           Destroy(chunkController.gameObject);
@@ -201,12 +161,14 @@ namespace Evix.Controllers.Unity {
 
       switch (@event) {
         // when the level finishes loading a chunk's mesh. Render it in world
-        case ChunkManager.ChunkMeshGenerationFinishedEvent lcmgfe:
-          World.Debugger.log($"level controller got mesh gen finished for {lcmgfe.chunkLocation.ToString()}");
-          if (!tryToAssignChunkToController(lcmgfe.chunkLocation.vec3)) {
-            chunksWaitingForAFreeController.Add(lcmgfe.chunkLocation.vec3);
+        case ActivateGameobjectResolutionAperture.SetChunkObjectActiveEvent scoae:
+          if (!tryToAssignChunkToController(scoae.chunkLocation.vec3)) {
+            chunksWaitingForAFreeController.Add(scoae.chunkLocation.vec3);
           }
           break;
+        /*case ActivateGameobjectResolutionAperture.SetChunkObjectInactiveEvent scoie:
+          
+          break;*/
         default:
           return;
       }
@@ -229,11 +191,11 @@ namespace Evix.Controllers.Unity {
         if (unusedChunkController.setChunkToRender(chunk, chunkLocation)) {
           chunkControllersAssignedChunks.Add(unusedChunkController);
           return true;
-        // if the chunk isn't meshable, we just drop it from the queue
+          // if the chunk isn't meshable, we just drop it from the queue
         } else {
           return true;
         }
-      // don't drop it yet, we didn't find a chunk controller.
+        // don't drop it yet, we didn't find a chunk controller.
       } else {
         return false;
       }
@@ -258,7 +220,7 @@ namespace Evix.Controllers.Unity {
 
               return false;
             }
-          // if we found an inactive controller, and we're still looking for that, lets snag it and stop looking.
+            // if we found an inactive controller, and we're still looking for that, lets snag it and stop looking.
           } else if (!foundUnusedController) {
             chunkController.isActive = true;
             unusedChunkController = chunkController;
@@ -279,13 +241,13 @@ namespace Evix.Controllers.Unity {
       int newlyAssignedChunkControllerCount = chunkControllersAssignedChunks.Count;
       // we'll try to take that many items out this loop around.
       while (0 < newlyAssignedChunkControllerCount--) {
-        if (chunkControllersAssignedChunks.TryTake(out ChunkController newlyAssignedChunkController) 
+        if (chunkControllersAssignedChunks.TryTake(out ChunkController newlyAssignedChunkController)
           && !chunkControllerActivationWaitQueue.Contains(newlyAssignedChunkController)
         ) {
           chunkControllerActivationWaitQueue.Add(newlyAssignedChunkController);
         }
       }
-     }
+    }
 
     /// <summary>
     /// Attempt to queue newly assigned chunk controllers from the bag
@@ -295,43 +257,12 @@ namespace Evix.Controllers.Unity {
       int newChunkCount = chunksWaitingForAFreeController.Count;
       // we'll try to take that many items out this loop around.
       while (0 < newChunkCount--) {
-        if (chunksWaitingForAFreeController.TryTake(out Vector3 newChunkLocation) 
+        if (chunksWaitingForAFreeController.TryTake(out Vector3 newChunkLocation)
           && !chunkControllerAssignmentWaitQueue.Contains(newChunkLocation)
         ) {
           chunkControllerAssignmentWaitQueue.Add(newChunkLocation);
         }
       }
-     }
-
-    /// <summary>
-    /// Check if a chunk should be turned active or nah
-    /// </summary>
-    /// <returns></returns>
-    bool chunkIsWithinActiveBounds(Vector3 chunkLocation) {
-      return chunkLocation.toCoordinate().isWithin(
-        level.meshedChunkBounds[0] + (activeChunkBuffer, 0 , activeChunkBuffer),
-        level.meshedChunkBounds[1] - (activeChunkBuffer, 0, activeChunkBuffer)
-      );
-    }
-
-    /// <summary>
-    /// On destroy, try to stop the jobs
-    /// </summary>
-    void OnDestroy() {
-      if (level != null) {
-        level.stopAllManagers();
-      }
-    }
-
-#if DEBUG
-    /// <summary>
-    /// Debug all the level manager info
-    /// </summary>
-    public void debugLevelManagers() {
-      if(level != null) {
-        World.Debugger.log(level.getManagerStats());
-      }
     }
   }
-#endif
 }

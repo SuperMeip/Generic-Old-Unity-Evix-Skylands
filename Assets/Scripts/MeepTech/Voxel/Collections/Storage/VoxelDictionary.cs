@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Runtime.Serialization;
 
 namespace MeepTech.Voxel.Collections.Storage {
 
@@ -13,28 +14,41 @@ namespace MeepTech.Voxel.Collections.Storage {
     /// if this storage set is completely full of voxels
     /// </summary>
     public bool isFull {
-      get => points.Count == bounds.x * bounds.y * bounds.z;
+      get => voxels.Count == bounds.x * bounds.y * bounds.z;
     }
 
     /// <summary>
     /// if there are no voxels in this storage object
     /// </summary>
     public override bool isEmpty
-      => points == null || points.Count == 0;
+      => voxels == null || voxels.Count == 0;
 
     /// <summary>
     /// The collection of points, a byte representing the material the point is made of
     /// </summary>
-    IDictionary<Coordinate, byte> points;
+    IDictionary<Coordinate, byte> voxels;
+
+    ///// CONSTRUCTORS  
 
     /// <summary>
     /// Create a new marching point voxel dictionary of the given size
     /// </summary>
     /// <param name="bounds"></param>
     public VoxelDictionary(Coordinate bounds) : base(bounds) {
-      points = new Dictionary<Coordinate, byte>();
+      voxels = new Dictionary<Coordinate, byte>();
     } //int version:
     public VoxelDictionary(int bound) : this(new Coordinate(bound)) { }
+
+    /// <summary>
+    /// Used for deserialization
+    /// </summary>
+    /// <param name="info"></param>
+    /// <param name="context"></param>
+    public VoxelDictionary(SerializationInfo info, StreamingContext context) : base(info) {
+      voxels = (IDictionary<Coordinate, byte>)info.GetValue("voxels", typeof(IDictionary<Coordinate, byte>));
+    }
+
+    ///// PUBLIC FUNCTIONS
 
     /// <summary>
     /// Get the voxel at the location from the dictionary
@@ -42,7 +56,7 @@ namespace MeepTech.Voxel.Collections.Storage {
     /// <param name="location"></param>
     /// <returns></returns>
     public override Voxel.Type get(Coordinate location) {
-      points.TryGetValue(location, out byte value);
+      voxels.TryGetValue(location, out byte value);
       return Terrain.Types.Get(value);
     }
 
@@ -57,10 +71,20 @@ namespace MeepTech.Voxel.Collections.Storage {
     /// </param>
     public override void set(Coordinate location, byte newVoxelValue) {
       if (location.isWithin(Coordinate.Zero, bounds)) {
-        points[location] = newVoxelValue;
+        voxels[location] = newVoxelValue;
       } else {
         throw new IndexOutOfRangeException();
       }
+    }
+
+    /// <summary>
+    /// Get the data object for this serialized voxel array
+    /// </summary>
+    /// <param name="info"></param>
+    /// <param name="context"></param>
+    public override void GetObjectData(SerializationInfo info, StreamingContext context) {
+      info.AddValue("bounds", bounds, typeof(Coordinate));
+      info.AddValue("voxels", voxels, typeof(IDictionary<Coordinate, byte>));
     }
   }
 }

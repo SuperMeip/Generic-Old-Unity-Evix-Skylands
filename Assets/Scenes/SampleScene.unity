@@ -38,7 +38,7 @@ RenderSettings:
   m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 705507994}
-  m_IndirectSpecularColor: {r: 0.44657898, g: 0.4964133, b: 0.5748178, a: 1}
+  m_IndirectSpecularColor: {r: 0.45045817, g: 0.5004562, b: 0.57518524, a: 1}
   m_UseRadianceAmbientProbe: 0
 --- !u!157 &3
 LightmapSettings:
@@ -165,7 +165,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   chunkObjectPrefab: {fileID: 8707777211682360012, guid: 3d4597816d019cd47adcac7d52430366,
     type: 3}
-  activeChunkBuffer: 0
   isLoaded: 0
 --- !u!1 &609159547
 GameObject:
@@ -369,8 +368,7 @@ Light:
   m_BounceIntensity: 1
   m_ColorTemperature: 6570
   m_UseColorTemperature: 0
-  m_BoundingSphereOverride: {x: 1.3555995e-19, y: 1.3563156e-19, z: 1.3563156e-19,
-    w: 1.592757e-10}
+  m_BoundingSphereOverride: {x: 0, y: 0, z: 0, w: 0}
   m_UseBoundingSphereOverride: 0
   m_ShadowRadius: 0
   m_ShadowAngle: 0
@@ -386,7 +384,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 963194228}
-  m_RootOrder: 2
+  m_RootOrder: 1
   m_LocalEulerAnglesHint: {x: 50, y: -30, z: 0}
 --- !u!1 &893514602
 GameObject:
@@ -418,7 +416,7 @@ Transform:
   m_Children:
   - {fileID: 338768708}
   m_Father: {fileID: 0}
-  m_RootOrder: 1
+  m_RootOrder: 2
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &893514604
 MonoBehaviour:
@@ -434,11 +432,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   currentFocus: {fileID: 1141358038}
   levelController: {fileID: 338768709}
-  SeaLevel: 10
-  levelSize: {x: 4, y: 2, z: 4}
-  meshedChunkDiameter: 2
-  chunkLoadBuffer: 2
-  chunksBelowToMesh: 2
+  SeaLevel: 600
+  levelSize: {x: 100, y: 20, z: 100}
+  activeChunkRadius: 5
+  activeChunkHeightOverride: 0
+  meshedChunkBuffer: 5
+  meshedChunkBufferHeightOverride: 0
+  loadedChunkBuffer: 0
+  loadedChunkHeightBufferOverride: 0
 --- !u!1 &963194225
 GameObject:
   m_ObjectHideFlags: 0
@@ -515,16 +516,15 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 963194225}
-  m_LocalRotation: {x: 0.12777965, y: -0, z: -0, w: 0.99180263}
-  m_LocalPosition: {x: 1209, y: 122, z: 946}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0.896, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
-  - {fileID: 2013136516}
   - {fileID: 2142421946}
   - {fileID: 705507995}
-  m_Father: {fileID: 0}
+  m_Father: {fileID: 1141358037}
   m_RootOrder: 0
-  m_LocalEulerAnglesHint: {x: 14.683001, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1141358033
 GameObject:
   m_ObjectHideFlags: 0
@@ -614,9 +614,10 @@ Transform:
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 32055, y: 500, z: 32036}
   m_LocalScale: {x: 1, y: 1, z: 1}
-  m_Children: []
+  m_Children:
+  - {fileID: 963194228}
   m_Father: {fileID: 0}
-  m_RootOrder: 2
+  m_RootOrder: 1
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1141358038
 MonoBehaviour:
@@ -741,7 +742,7 @@ RectTransform:
   m_LocalScale: {x: 0, y: 0, z: 0}
   m_Children:
   - {fileID: 609159548}
-  m_Father: {fileID: 963194228}
+  m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
@@ -873,5 +874,5 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 963194228}
-  m_RootOrder: 1
+  m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
