@@ -1,6 +1,9 @@
-﻿using MeepTech.Jobs;
+﻿using MeepTech.Events;
+using MeepTech.GamingBasics;
+using MeepTech.Jobs;
 using MeepTech.Voxel.Generation.Mesh;
 using System.Linq;
+using System.Threading;
 
 namespace MeepTech.Voxel.Collections.Level.Management {
 
@@ -57,6 +60,14 @@ namespace MeepTech.Voxel.Collections.Level.Management {
     /// <param name="chunkLocations"></param>
     protected override void addChunksToUnload(Coordinate[] chunkLocations) {
       chunkMeshGenQueueManagerJob.dequeue(chunkLocations);
+      new Thread(() => {
+        foreach (Coordinate chunkLocation in chunkLocations) {
+          World.EventSystem.notifyChannelOf(
+            new ChunkMeshMovedOutOfFocusEvent(chunkLocation),
+            Evix.EventSystems.WorldEventSystem.Channels.ChunkActivationUpdates
+          );
+        }
+      }) { Name = "De-Mesh Chunks Messenger" }.Start();
     }
 
     /// <summary>
@@ -82,7 +93,7 @@ namespace MeepTech.Voxel.Collections.Level.Management {
       /// Create a new job, linked to the level
       /// </summary>
       /// <param name="level"></param>
-      public JGenerateChunkMeshes(LoadedChunkMeshDataResolutionAperture manager) : base(manager, 50) {
+      public JGenerateChunkMeshes(LoadedChunkMeshDataResolutionAperture manager) : base(manager, 25) {
         threadName = "Generate Chunk Mesh Manager";
       }
 
@@ -157,9 +168,71 @@ namespace MeepTech.Voxel.Collections.Level.Management {
             IMesh mesh = jobManager.chunkManager.generateMeshDataForChunk(chunkLocation);
             if (!mesh.isEmpty) {
               jobManager.chunkManager.level.chunkDataStorage.setChunkMesh(chunkLocation, mesh);
+              World.EventSystem.notifyChannelOf(
+                new ChunkMeshLoadingFinishedEvent(chunkLocation),
+                Evix.EventSystems.WorldEventSystem.Channels.ChunkActivationUpdates
+              );
             }
           }
         }
+      }
+    }
+
+    /// <summary>
+    /// An event indicating a a chunk's mesh is stored and loaded
+    /// </summary>
+    public struct ChunkMeshLoadingFinishedEvent : IEvent {
+
+      /// <summary>
+      /// The chunk location of the chunk
+      /// </summary>
+      public Coordinate chunkLocation {
+        get;
+      }
+
+      /// <summary>
+      /// The name of this event
+      /// </summary>
+      public string name {
+        get;
+      }
+
+      /// <summary>
+      /// Create a new event indicating a chunk is ready to have it's gameobject set active in world.
+      /// </summary>
+      /// <param name="chunkLocation"></param>
+      public ChunkMeshLoadingFinishedEvent(Coordinate chunkLocation) {
+        name = $"Mesh loaded for chunk : {chunkLocation.ToString()}";
+        this.chunkLocation = chunkLocation;
+      }
+    }
+
+    /// <summary>
+    /// An event indicating a a chunk has moved out of the focus area in which we retain it's mesh data
+    /// </summary>
+    public struct ChunkMeshMovedOutOfFocusEvent : IEvent {
+
+      /// <summary>
+      /// The chunk location of the chunk
+      /// </summary>
+      public Coordinate chunkLocation {
+        get;
+      }
+
+      /// <summary>
+      /// The name of this event
+      /// </summary>
+      public string name {
+        get;
+      }
+
+      /// <summary>
+      /// Create a new event indicating a chunk is ready to have it's gameobject set inactive in world.
+      /// </summary>
+      /// <param name="chunkLocation"></param>
+      public ChunkMeshMovedOutOfFocusEvent(Coordinate chunkLocation) {
+        name = $"Chunk has left mesh resolution aperture area : {chunkLocation.ToString()}";
+        this.chunkLocation = chunkLocation;
       }
     }
   }

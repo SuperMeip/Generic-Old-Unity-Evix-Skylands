@@ -171,7 +171,7 @@ namespace MeepTech.Voxel.Collections.Level.Management {
       /// Create a new job, linked to the level
       /// </summary>
       /// <param name="level"></pa
-      public JLoadChunksFromFile(LoadedChunkVoxelDataResolutionAperture<VoxelStorageType> manager) : base(manager, 50) {
+      public JLoadChunksFromFile(LoadedChunkVoxelDataResolutionAperture<VoxelStorageType> manager) : base(manager, 25) {
         threadName = "Load Chunk Data Manager";
       }
 
@@ -206,7 +206,7 @@ namespace MeepTech.Voxel.Collections.Level.Management {
       /// sort items by the focus area they're in?
       /// </summary>
       protected override void sortQueue() {
-        chunkManager.sortByFocusDistance(ref queue);
+        chunkManager.sortByFocusDistance(ref queue, 1.5f);
       }
 
       /// <summary>
@@ -249,7 +249,7 @@ namespace MeepTech.Voxel.Collections.Level.Management {
       /// Create a new job, linked to the level
       /// </summary>
       /// <param name="level"></param>
-      public JGenerateTerrainDataForChunks(LoadedChunkVoxelDataResolutionAperture<VoxelStorageType> manager) : base(manager) {
+      public JGenerateTerrainDataForChunks(LoadedChunkVoxelDataResolutionAperture<VoxelStorageType> manager) : base(manager, 25) {
         threadName = "Generate Chunk Manager";
       }
 
@@ -279,7 +279,7 @@ namespace MeepTech.Voxel.Collections.Level.Management {
       /// sort items by the focus area they're in?
       /// </summary>
       protected override void sortQueue() {
-        chunkManager.sortByFocusDistance(ref queue);
+        chunkManager.sortByFocusDistance(ref queue, 1.5f);
       }
 
       /// <summary>

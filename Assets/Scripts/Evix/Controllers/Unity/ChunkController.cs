@@ -75,8 +75,15 @@ namespace Evix.Controllers.Unity {
     /// <summary>
     /// Can only be called from the main thread. Set this gameobject active.
     /// </summary>
-    public void setObjectActive() {
+    public void enableObjectVisible() {
       gameObject.SetActive(true);
+    }
+
+    /// <summary>
+    /// Can only be called from the main thread. Set this gameobject inactive.
+    /// </summary>
+    public void disableObjectVisible() {
+      gameObject.SetActive(false);
     }
 
     /// <summary>

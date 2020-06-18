@@ -696,9 +696,9 @@ namespace MeepTech.Voxel {
     /// </summary>
     /// <param name="otherPoint"></param>
     /// <returns></returns>
-    public float distanceYFlattened(Coordinate otherPoint, float yExponent = 5f) {
+    public float distanceYFlattened(Coordinate otherPoint, float yMultiplier) {
       float a = (float)Math.Pow(x - otherPoint.x, 2);
-      float b = (float)Math.Pow(y - otherPoint.y, yExponent);
+      float b = (float)Math.Pow(y - otherPoint.y, 2) * yMultiplier;
       float c = (float)Math.Pow(z - otherPoint.z, 2);
 
       float d = (float)Math.Sqrt(
