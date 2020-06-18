@@ -95,6 +95,8 @@ namespace MeepTech.Voxel.Collections.Level {
         resolutionAperture.setLevel(this);
         World.EventSystem.subscribe(resolutionAperture, Evix.EventSystems.WorldEventSystem.Channels.LevelFocusUpdates);
       }
+      // also subscribe this to the activation channel, in case an active chunk needs a mesh
+      World.EventSystem.subscribe(resolutionApertures[(int)FocusResolutionLayers.Meshed], Evix.EventSystems.WorldEventSystem.Channels.ChunkActivationUpdates);
 
       seed = voxelSource.seed;
     }

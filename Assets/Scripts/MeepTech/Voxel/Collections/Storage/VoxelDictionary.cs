@@ -13,7 +13,7 @@ namespace MeepTech.Voxel.Collections.Storage {
     /// <summary>
     /// if this storage set is completely full of voxels
     /// </summary>
-    public bool isFull {
+    public override bool isFull {
       get => voxels.Count == bounds.x * bounds.y * bounds.z;
     }
 

@@ -60,7 +60,7 @@ namespace Evix.Controllers.Unity {
     /// <param name="chunk"></param>
     /// <param name="chunkLevelLocation"></param>
     public bool setChunkToRender(IVoxelChunk chunk, Vector3 chunkLevelLocation) {
-      if (chunk.isLoaded && chunk.mesh != null && !chunk.isEmpty) {
+      if (chunk.isLoaded && chunk.isMeshed && !chunk.isEmpty && !chunk.mesh.isEmpty) {
         currentChunk = chunk;
         chunkLocation = chunkLevelLocation;
         isMeshed = false;

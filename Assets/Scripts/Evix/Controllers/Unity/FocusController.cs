@@ -104,7 +104,7 @@ namespace Evix.Controllers.Unity {
 
       // draw all the chunks in the mnesh loading queue right now
       Gizmos.color = Color.blue;
-      foreach (Coordinate loadingChunkLocation in meshAperture.GetProcessingChunks()) {
+      foreach (Coordinate loadingChunkLocation in meshAperture.getProcessingChunks()) {
         Gizmos.DrawWireCube(
           ((loadingChunkLocation * Chunk.Diameter) + (Chunk.Diameter / 2)).vec3,
           new Vector3(Chunk.Diameter, Chunk.Diameter, Chunk.Diameter)
@@ -122,7 +122,7 @@ namespace Evix.Controllers.Unity {
 
       // draw all the chunks in the data loading queue right now
       Gizmos.color = Color.yellow;
-      foreach(Coordinate loadingChunkLocation in loadedAperture.GetProcessingChunks()) {
+      foreach(Coordinate loadingChunkLocation in loadedAperture.getProcessingChunks()) {
         Gizmos.DrawWireCube(
           ((loadingChunkLocation * Chunk.Diameter) + (Chunk.Diameter / 2)).vec3,
           new Vector3(Chunk.Diameter, Chunk.Diameter, Chunk.Diameter)

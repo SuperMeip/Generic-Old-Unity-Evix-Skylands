@@ -10,15 +10,26 @@ namespace MeepTech.Voxel.Collections.Storage {
   public class JaggedVoxelArray : VoxelStorage {
 
     /// <summary>
+    /// if this is empty
+    /// </summary>
+    public override bool isEmpty
+      => voxels == null;
+
+    /// <summary>
+    /// Not implimented yet. I may not use this collection
+    /// </summary>
+    public override bool isFull
+      => voxelCount == bounds.x * bounds.y * bounds.z;
+
+    /// <summary>
     /// block data
     /// </summary>
     byte[][][] voxels;
 
     /// <summary>
-    /// if this is empty
+    /// the current number of solid voxels
     /// </summary>
-    public override bool isEmpty
-      => voxels == null;
+    int voxelCount = 0;
 
     ///// CONSTRUCTORS
 

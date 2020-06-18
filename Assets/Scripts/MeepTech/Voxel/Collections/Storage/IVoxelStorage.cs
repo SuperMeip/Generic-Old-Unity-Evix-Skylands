@@ -13,6 +13,13 @@
     }
 
     /// <summary>
+    /// if this voxel storage source is completely full/solid
+    /// </summary>
+    bool isFull {
+      get;
+    }
+
+    /// <summary>
     /// if this block storage source has finished being
     ///    generated or loaded from file a file
     /// </summary>

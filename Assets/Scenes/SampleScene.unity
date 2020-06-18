@@ -416,7 +416,7 @@ Transform:
   m_Children:
   - {fileID: 338768708}
   m_Father: {fileID: 0}
-  m_RootOrder: 1
+  m_RootOrder: 2
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &893514604
 MonoBehaviour:
@@ -433,7 +433,7 @@ MonoBehaviour:
   currentFocus: {fileID: 494938814822613036}
   levelController: {fileID: 338768709}
   SeaLevel: 600
-  levelSize: {x: 100, y: 20, z: 100}
+  levelSize: {x: 1000, y: 20, z: 1000}
   activeChunkRadius: 3
   activeChunkHeightOverride: 0
   meshedChunkBuffer: 2
@@ -819,7 +819,7 @@ PrefabInstance:
     - target: {fileID: 993881110656298474, guid: 75eecd0b3f9703644b6fa63e9b6219f6,
         type: 3}
       propertyPath: m_RootOrder
-      value: 2
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 993881110656298474, guid: 75eecd0b3f9703644b6fa63e9b6219f6,
         type: 3}

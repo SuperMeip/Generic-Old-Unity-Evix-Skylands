@@ -51,7 +51,7 @@ namespace MeepTech.Voxel.Collections.Level.Management {
     /// Get the chunks that this apeture is waiting to load
     /// </summary>
     /// <returns></returns>
-    public override Coordinate[] GetQueuedChunks() {
+    public override Coordinate[] getQueuedChunks() {
       return chunkFileLoadQueueManagerJob.getAllQueuedItems()
         .Concat(chunkGenerationJobManager.getAllQueuedItems()).ToArray();
     }
@@ -60,7 +60,7 @@ namespace MeepTech.Voxel.Collections.Level.Management {
     /// Get the chunks this apeture is loading/processing
     /// </summary>
     /// <returns></returns>
-    public override Coordinate[] GetProcessingChunks() {
+    public override Coordinate[] getProcessingChunks() {
       return chunkFileLoadQueueManagerJob.getAllItemsWithRunningJobs()
         .Concat(chunkGenerationJobManager.getAllItemsWithRunningJobs()).ToArray();
     }

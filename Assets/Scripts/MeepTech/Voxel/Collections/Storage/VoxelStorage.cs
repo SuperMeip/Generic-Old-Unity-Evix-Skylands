@@ -27,6 +27,13 @@ namespace MeepTech.Voxel.Collections.Storage {
     /// <summary>
     /// if this storage set is empty of voxels
     /// </summary>
+    public abstract bool isFull {
+      get;
+    }
+
+    /// <summary>
+    /// if this storage set is empty of voxels
+    /// </summary>
     public bool isLoaded {
       get;
       set;

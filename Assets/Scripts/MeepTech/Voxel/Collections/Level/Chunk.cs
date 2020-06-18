@@ -42,6 +42,12 @@ namespace MeepTech.Voxel.Collections.Level {
       => voxels == null || voxels.isEmpty;
 
     /// <summary>
+    /// if this chunk is empty
+    /// </summary>
+    public bool isFull
+      => voxels != null && voxels.isFull;
+
+    /// <summary>
     /// if this storage set is empty of voxels
     /// </summary>
     public bool isLoaded {

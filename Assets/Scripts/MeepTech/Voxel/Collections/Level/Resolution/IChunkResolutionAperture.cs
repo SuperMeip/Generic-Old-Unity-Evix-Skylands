@@ -41,13 +41,13 @@ namespace MeepTech.Voxel.Collections.Level.Management {
     /// Used for debugging, get which chunks are currently queued
     /// </summary>
     /// <returns></returns>
-    Coordinate[] GetQueuedChunks();
+    Coordinate[] getQueuedChunks();
 
     /// <summary>
     /// Used for debugging, get which chunks are currently being worked on/loaded by this apeture
     /// </summary>
     /// <returns></returns>
-    Coordinate[] GetProcessingChunks();
+    Coordinate[] getProcessingChunks();
 #endif
   }
 }

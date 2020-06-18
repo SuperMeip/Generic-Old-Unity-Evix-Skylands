@@ -17,6 +17,8 @@ namespace MeepTech.Voxel.Collections.Level.Management {
     /// </summary>
     JGenerateChunkMeshes chunkMeshGenQueueManagerJob;
 
+    ///// CONSTRUCTORS
+
     /// <summary>
     /// Construct
     /// </summary>
@@ -28,12 +30,33 @@ namespace MeepTech.Voxel.Collections.Level.Management {
       chunkMeshGenQueueManagerJob = new JGenerateChunkMeshes(this);
     }
 
+    ///// PUBLIC FUNCTIONS
+
+    /// <summary>
+    /// Listen for notifications
+    /// </summary>
+    /// <param name="event"></param>
+    /// <param name="origin"></param>
+    public override void notifyOf(IEvent @event, IObserver origin = null) {
+      switch (@event) {
+        /// if a chunk is waiting on a mesh to be active, and it's not currently loading or loaded, lets load it.
+        case ActivateGameobjectResolutionAperture.ChunkWaitingForActiveMissingMeshEvent swfamme:
+          if (!getProcessingChunks().Concat(getQueuedChunks()).Contains(swfamme.chunkLocation)) {
+            addChunksToLoad(new Coordinate[] { swfamme.chunkLocation });
+          }
+          break;
+        default:
+          base.notifyOf(@event, origin);
+          break;
+      }
+    }
+
 #if DEBUG
     /// <summary>
     /// Get the chunks that this apeture is waiting to load
     /// </summary>
     /// <returns></returns>
-    public override Coordinate[] GetQueuedChunks() {
+    public override Coordinate[] getQueuedChunks() {
       return chunkMeshGenQueueManagerJob.getAllQueuedItems();
     }
 
@@ -41,10 +64,12 @@ namespace MeepTech.Voxel.Collections.Level.Management {
     /// Get the chunks this apeture is loading/processing
     /// </summary>
     /// <returns></returns>
-    public override Coordinate[] GetProcessingChunks() {
+    public override Coordinate[] getProcessingChunks() {
       return chunkMeshGenQueueManagerJob.getAllItemsWithRunningJobs();
     }
 #endif
+
+    ///// INTERNAL FUNCTIONS
 
     /// <summary>
     /// add chunks to this resolution layer
@@ -114,12 +139,14 @@ namespace MeepTech.Voxel.Collections.Level.Management {
       /// <returns></returns>
       protected override bool isAValidQueueItem(Coordinate chunkLocation) {
         if (!chunkManager.isWithinManagedBounds(chunkLocation)) {
+          World.Debugger.log($"{threadName} dropped {chunkLocation} due to it being out of bounds");
           return false;
         }
 
         IVoxelChunk chunk = chunkManager.level.getChunk(chunkLocation);
         // the chunk can't be loaded and empty, we'll generate nothing.
         if (chunk.isLoaded && chunk.isEmpty) {
+          World.Debugger.log($"{threadName} dropped {chunkLocation} due to it being loaded and empty");
           return false;
         }
 
@@ -164,15 +191,20 @@ namespace MeepTech.Voxel.Collections.Level.Management {
         /// generate the chunk mesh if the level doesn't have it yet.
         /// </summary>
         protected override void doWork(Coordinate chunkLocation) {
+          // if we don't have a mesh yet, generate one
           if (!jobManager.chunkManager.level.chunkDataStorage.containsChunkMesh(chunkLocation)) {
             IMesh mesh = jobManager.chunkManager.generateMeshDataForChunk(chunkLocation);
-            if (!mesh.isEmpty) {
-              jobManager.chunkManager.level.chunkDataStorage.setChunkMesh(chunkLocation, mesh);
-              World.EventSystem.notifyChannelOf(
-                new ChunkMeshLoadingFinishedEvent(chunkLocation),
-                Evix.EventSystems.WorldEventSystem.Channels.ChunkActivationUpdates
-              );
-            }
+            jobManager.chunkManager.level.chunkDataStorage.setChunkMesh(chunkLocation, mesh);
+            World.EventSystem.notifyChannelOf(
+              new ChunkMeshLoadingFinishedEvent(chunkLocation),
+              Evix.EventSystems.WorldEventSystem.Channels.ChunkActivationUpdates
+            );
+          // if we already have a mesh, just send off the finished loading notification
+          } else {
+            World.EventSystem.notifyChannelOf(
+              new ChunkMeshLoadingFinishedEvent(chunkLocation),
+              Evix.EventSystems.WorldEventSystem.Channels.ChunkActivationUpdates
+            );
           }
         }
       }

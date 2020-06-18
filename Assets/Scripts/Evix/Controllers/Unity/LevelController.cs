@@ -259,6 +259,7 @@ namespace Evix.Controllers.Unity {
           return true;
           // if the chunk isn't meshable, we just drop it from the queue
         } else {
+          World.Debugger.log($"Chunk {chunkLocation} is unmeshable");
           return true;
         }
         // don't drop it yet, we didn't find a chunk controller.

@@ -16,6 +16,12 @@ namespace MeepTech.Voxel.Collections.Storage {
       => voxels == null;
 
     /// <summary>
+    /// If this voxel storage is full
+    /// </summary>
+    public override bool isFull 
+      => voxelCount == bounds.x * bounds.y * bounds.z;
+
+    /// <summary>
     /// make a new voxel data array
     /// </summary>
     /// <param name="bounds"></param>
@@ -27,6 +33,11 @@ namespace MeepTech.Voxel.Collections.Storage {
     /// The actual points
     /// </summary>
     byte[] voxels;
+
+    /// <summary>
+    /// the current number of solid voxels
+    /// </summary>
+    int voxelCount = 0;
 
     ///// CONSTRUCTORS
 
@@ -45,6 +56,7 @@ namespace MeepTech.Voxel.Collections.Storage {
     /// <param name="context"></param>
     public FlatVoxelArray(SerializationInfo info, StreamingContext context) : base (info) {
       voxels = (byte[])info.GetValue("voxels", typeof(byte[]));
+      voxelCount = (int)info.GetValue("voxelCount", typeof(int));
     }
 
     ///// PUBLIC FUNCTIONS
@@ -81,6 +93,7 @@ namespace MeepTech.Voxel.Collections.Storage {
           initVoxelArray();
         }
         voxels[location.x + bounds.x * (location.y + bounds.y * location.z)] = newVoxelType;
+        voxelCount++;
       } else {
         throw new IndexOutOfRangeException();
       }
@@ -94,6 +107,7 @@ namespace MeepTech.Voxel.Collections.Storage {
     public override void GetObjectData(SerializationInfo info, StreamingContext context) {
       info.AddValue("bounds", bounds, typeof(Coordinate));
       info.AddValue("voxels", voxels, typeof(byte[]));
+      info.AddValue("voxelCount", voxelCount, typeof(int));
     }
 
     ///// SUB FUNCTIONS

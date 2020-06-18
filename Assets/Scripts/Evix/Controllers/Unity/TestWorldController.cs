@@ -66,7 +66,7 @@ namespace Evix.Controllers.Unity {
       World.setActiveLevel(levelController.level);
 
       // initialize the focus
-      currentFocus.setPosition((level.chunkBounds - (0, 1, 0)) / 2 * Chunk.Diameter);
+      currentFocus.setPosition((level.chunkBounds) / 2 * Chunk.Diameter);
       level.spawnFocus(currentFocus);
     }
 

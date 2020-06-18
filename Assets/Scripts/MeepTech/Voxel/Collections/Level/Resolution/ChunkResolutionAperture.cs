@@ -86,7 +86,7 @@ namespace MeepTech.Voxel.Collections.Level.Management {
     /// </summary>
     /// <param name="event"></param>
     /// <param name="origin"></param>
-    public void notifyOf(IEvent @event, IObserver origin = null) {
+    public virtual void notifyOf(IEvent @event, IObserver origin = null) {
       if (level == null) {
         return;
       }
@@ -113,13 +113,13 @@ namespace MeepTech.Voxel.Collections.Level.Management {
     /// Get the chunks that this apeture is waiting to load
     /// </summary>
     /// <returns></returns>
-    public abstract Coordinate[] GetQueuedChunks();
+    public abstract Coordinate[] getQueuedChunks();
 
     /// <summary>
     /// Get the chunks this apeture is loading/processing
     /// </summary>
     /// <returns></returns>
-    public abstract Coordinate[] GetProcessingChunks();
+    public abstract Coordinate[] getProcessingChunks();
 #endif
 
     ///// INTERNAL FUNCTIONS

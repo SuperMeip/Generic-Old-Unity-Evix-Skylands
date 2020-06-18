@@ -32,7 +32,7 @@ namespace MeepTech.Voxel.Collections.Level.Management {
     /// Get the chunks that this apeture is waiting to load
     /// </summary>
     /// <returns></returns>
-    public override Coordinate[] GetQueuedChunks() {
+    public override Coordinate[] getQueuedChunks() {
       return chunkObjectActivationJobManager.getAllQueuedItems();
     }
 
@@ -40,7 +40,7 @@ namespace MeepTech.Voxel.Collections.Level.Management {
     /// Get the chunks this apeture is loading/processing
     /// </summary>
     /// <returns></returns>
-    public override Coordinate[] GetProcessingChunks() {
+    public override Coordinate[] getProcessingChunks() {
       return chunkObjectActivationJobManager.getAllItemsWithRunningJobs();
     }
 #endif
@@ -106,6 +106,18 @@ namespace MeepTech.Voxel.Collections.Level.Management {
         // the chunk can't be loaded and empty, or meshed with an empty mesh.
         if ((chunk.isLoaded && chunk.isEmpty) || (chunk.isMeshed && chunk.mesh.isEmpty)) {
           return false;
+        }
+
+        /// in this case, we want to make sure the mesh job didn't drop or loose our chunk
+        // @TODO: cull this better, instead of isfull, maybe use a system to determine if it's visible to a player or not,
+        // this notification should only be sent if a chunk needs to be rendered badly because it's missing.
+        if (chunk.isLoaded && !chunk.isMeshed && !chunk.isEmpty && !chunk.isFull) {
+          new Thread(() => {
+            World.EventSystem.notifyChannelOf(
+              new ChunkWaitingForActiveMissingMeshEvent(chunkLocation),
+              Evix.EventSystems.WorldEventSystem.Channels.ChunkActivationUpdates
+            );
+          }) { Name = "Missing Mesh Messenger"}.Start();
         }
 
         return true;
@@ -214,6 +226,35 @@ namespace MeepTech.Voxel.Collections.Level.Management {
       /// <param name="chunkLocation"></param>
       public SetChunkObjectInactiveEvent(Coordinate chunkLocation) {
         name = $"Setting Chunk Gameobject Object Inactive: {chunkLocation.ToString()}";
+        this.chunkLocation = chunkLocation;
+      }
+    }
+
+    /// <summary>
+    /// An event indicating a chunk is not empty, not solid, not meshed, and is waiting for activation.
+    /// </summary>
+    public struct ChunkWaitingForActiveMissingMeshEvent : IEvent {
+
+      /// <summary>
+      /// The chunk location of the chunk
+      /// </summary>
+      public Coordinate chunkLocation {
+        get;
+      }
+
+      /// <summary>
+      /// The name of this event
+      /// </summary>
+      public string name {
+        get;
+      }
+
+      /// <summary>
+      /// Create a new event indicating a chunk is ready to have it's gameobject set inactive in world.
+      /// </summary>
+      /// <param name="chunkLocation"></param>
+      public ChunkWaitingForActiveMissingMeshEvent(Coordinate chunkLocation) {
+        name = $"Active chunk: {chunkLocation.ToString()} is waiting for a mesh!";
         this.chunkLocation = chunkLocation;
       }
     }
