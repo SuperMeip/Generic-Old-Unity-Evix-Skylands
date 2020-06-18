@@ -99,8 +99,11 @@ namespace Evix.Controllers.Unity {
       queueNewlyActivatedChunks();
       chunksToActivate.RemoveAll(activatedChunkLocation => {
         ChunkController assignedController = getAssignedChunkController(activatedChunkLocation);
-        // if the chunk doesn't have a meshed controller yet, we can't activate it, so wait.
-        if (assignedController == null || !(assignedController.isActive && assignedController.isMeshed)) {
+        // if the chunk doesn't have a meshed and baked controller yet, we can't activate it, so wait.
+        if (assignedController == null // has a controller
+          || !(assignedController.isActive && assignedController.isMeshed) // is active and meshed
+          || !assignedController.checkColliderIsBaked() // colliders are baked
+        ) {
           return false;
         }
 

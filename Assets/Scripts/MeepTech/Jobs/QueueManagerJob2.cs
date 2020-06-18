@@ -15,7 +15,7 @@ namespace MeepTech.Jobs {
     /// <summary>
     /// The default maximum child job count
     /// </summary>
-    public const int DefaultMaxChildJobCount = 100;
+    public const int DefaultMaxChildJobCount = 20;
 
     /// <summary>
     /// The currently queued up job count

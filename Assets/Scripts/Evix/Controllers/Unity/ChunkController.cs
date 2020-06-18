@@ -1,4 +1,6 @@
 ﻿using MeepTech.Voxel.Collections.Level;
+using System.Threading;
+using Unity.Jobs;
 using UnityEngine;
 
 namespace Evix.Controllers.Unity {
@@ -49,10 +51,31 @@ namespace Evix.Controllers.Unity {
     /// </summary>
     MeshCollider meshCollider;
 
+    /// <summary>
+    /// The job handler for the collider mesh baking job
+    /// </summary>
+    JobHandle colliderBakerHandler;
+
+    ///// UNITY FUNCTIONS
+
+    /// <summary>
+    /// init
+    /// </summary>
     void Awake() {
       meshFilter = GetComponent<MeshFilter>();
       meshCollider = GetComponent<MeshCollider>();
     }
+
+    /// <summary>
+    /// Free memory
+    /// </summary>
+    private void OnDestroy() {
+      Destroy(currentChunkMesh);
+      Destroy(meshFilter.mesh);
+      Destroy(meshCollider.sharedMesh);
+    }
+
+    ///// PUBLIC FUNCTIONS
 
     /// <summary>
     /// Set the chunk to render. Returns true if the data was set up
@@ -102,6 +125,9 @@ namespace Evix.Controllers.Unity {
       meshFilter.mesh = currentChunkMesh;
       meshCollider.sharedMesh = currentChunkMesh;
       isMeshed = true;
+
+      /// schedule a job to bake the mesh collider asyncly so it doesn't lag.
+      colliderBakerHandler = (new ColliderMeshBakingJob(currentChunkMesh.GetInstanceID())).Schedule();
     }
 
     /// <summary>
@@ -114,17 +140,44 @@ namespace Evix.Controllers.Unity {
 
       currentChunk = null;
       chunkLocation = default;
+      colliderBakerHandler = default;
       isMeshed = false;
       isActive = false;
     }
 
     /// <summary>
-    /// Free memory
+    /// Check if the collider was baked by a job for this chunk
     /// </summary>
-    private void OnDestroy() {
-      Destroy(currentChunkMesh);
-      Destroy(meshFilter.mesh);
-      Destroy(meshCollider.sharedMesh);
+    /// <returns></returns>
+    public bool checkColliderIsBaked() {
+      return colliderBakerHandler.IsCompleted;
+    }
+
+    /// <summary>
+    /// A unity job to bake the collider mesh
+    /// </summary>
+    struct ColliderMeshBakingJob : IJob {
+
+      /// <summary>
+      /// The id of the mesh to bake
+      /// </summary>
+      readonly int meshID;
+
+      /// <summary>
+      /// Create a new mesh baking job for this controller
+      /// </summary>
+      /// <param name="meshID"></param>
+      /// <param name="chunkController"></param>
+      public ColliderMeshBakingJob(int meshID) {
+        this.meshID = meshID;
+      }
+
+      /// <summary>
+      /// Execute the job and bake the mesh
+      /// </summary>
+      public void Execute() {
+        Physics.BakeMesh(meshID, false);
+      }
     }
   }
 }
