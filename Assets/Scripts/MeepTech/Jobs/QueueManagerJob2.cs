@@ -180,7 +180,7 @@ namespace MeepTech.Jobs {
 
           // if the item has been canceled. Remove it.
           if (itemIsCanceled(queueItem)) {
-            World.Debugger.log($"{threadName} canceled {queueItem}");
+            // World.Debugger.log($"{threadName} canceled {queueItem}");
             return true;
           }
 
@@ -196,7 +196,7 @@ namespace MeepTech.Jobs {
             IThreadedJob childJob = getChildJob(queueItem);
             runningChildJobs.TryAdd(queueItem, childJob);
             childJob.start();
-            World.Debugger.log($"{threadName} has started job for {queueItem}");
+            // World.Debugger.log($"{threadName} has started job for {queueItem}");
             return true;
           }
 
@@ -227,7 +227,7 @@ namespace MeepTech.Jobs {
         ) {
           itemsQueued++;
           queue.Add(newQueueItem);
-          World.Debugger.log($"{threadName} has added {newQueueItem} to queue");
+          // World.Debugger.log($"{threadName} has added {newQueueItem} to queue");
         }
       }
 

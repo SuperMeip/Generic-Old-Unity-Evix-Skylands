@@ -23,7 +23,7 @@ namespace MeepTech.Events {
     /// <summary>
     /// Debug Mode.
     /// </summary>
-    bool debugMode = true;
+    bool debugMode = false;
 
     /// <summary>
     /// Constructor

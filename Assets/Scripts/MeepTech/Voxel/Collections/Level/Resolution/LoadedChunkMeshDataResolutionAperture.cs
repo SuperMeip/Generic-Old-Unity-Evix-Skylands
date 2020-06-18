@@ -139,14 +139,14 @@ namespace MeepTech.Voxel.Collections.Level.Management {
       /// <returns></returns>
       protected override bool isAValidQueueItem(Coordinate chunkLocation) {
         if (!chunkManager.isWithinManagedBounds(chunkLocation)) {
-          World.Debugger.log($"{threadName} dropped {chunkLocation} due to it being out of bounds");
+          //World.Debugger.log($"{threadName} dropped {chunkLocation} due to it being out of bounds");
           return false;
         }
 
         IVoxelChunk chunk = chunkManager.level.getChunk(chunkLocation);
         // the chunk can't be loaded and empty, we'll generate nothing.
         if (chunk.isLoaded && chunk.isEmpty) {
-          World.Debugger.log($"{threadName} dropped {chunkLocation} due to it being loaded and empty");
+          //World.Debugger.log($"{threadName} dropped {chunkLocation} due to it being loaded and empty");
           return false;
         }
 
