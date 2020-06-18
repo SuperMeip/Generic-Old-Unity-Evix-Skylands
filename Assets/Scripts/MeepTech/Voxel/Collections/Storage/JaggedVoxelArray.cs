@@ -16,7 +16,7 @@ namespace MeepTech.Voxel.Collections.Storage {
       => voxels == null;
 
     /// <summary>
-    /// Not implimented yet. I may not use this collection
+    /// If this collection is full
     /// </summary>
     public override bool isFull
       => voxelCount == bounds.x * bounds.y * bounds.z;
@@ -56,6 +56,7 @@ namespace MeepTech.Voxel.Collections.Storage {
     /// <param name="context"></param>
     public JaggedVoxelArray(SerializationInfo info, StreamingContext context) : base(info) {
       voxels = (byte[][][])info.GetValue("voxels", typeof(byte[][][]));
+      voxelCount = (int)info.GetValue("voxelCount", typeof(int));
     }
 
     ///// PUBLIC FUNCTIONS
@@ -93,6 +94,7 @@ namespace MeepTech.Voxel.Collections.Storage {
     public override void GetObjectData(SerializationInfo info, StreamingContext context) {
       info.AddValue("bounds", bounds, typeof(Coordinate));
       info.AddValue("voxels", voxels, typeof(byte[][][]));
+      info.AddValue("voxelCount", voxelCount, typeof(int));
     }
 
     ///// SUB FUNCTIONS
@@ -149,6 +151,7 @@ namespace MeepTech.Voxel.Collections.Storage {
 
       /// set the block value
       voxels[location.x][location.y][location.z] = value;
+      voxelCount++;
     }
 
     /// <summary>
