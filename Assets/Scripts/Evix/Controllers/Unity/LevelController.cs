@@ -119,13 +119,14 @@ namespace Evix.Controllers.Unity {
         return;
       }
 
+      // @TODO: bottleneck all these queues like i did the others
+
       // NOTE:: Newly activated chunks goes first so we don't mesh then activate in the same frame
       /// go through the chunk activation queue and activate chunks
       queueNewlyActivatedChunks();
       chunksToActivate.RemoveAll(activatedChunkLocation => {
-        ChunkController assignedController = getAssignedChunkController(activatedChunkLocation);
         // if the chunk doesn't have a meshed and baked controller yet, we can't activate it, so wait.
-        if (assignedController == null // has a controller
+        if (!tryToGetAssignedChunkController(activatedChunkLocation, out ChunkController assignedController) // has a controller
           || !(assignedController.isActive && assignedController.isMeshed) // is active and meshed
           || !assignedController.checkColliderIsBaked() // colliders are baked
         ) {
@@ -161,8 +162,7 @@ namespace Evix.Controllers.Unity {
       /// go through the de-activation queue
       queueNewlyDeactivatedChunks();
       chunksToDeactivate.RemoveAll(deactivatedChunkLocation => {
-        ChunkController assignedController = getAssignedChunkController(deactivatedChunkLocation);
-        if (assignedController != null) {
+        if (tryToGetAssignedChunkController(deactivatedChunkLocation, out ChunkController assignedController)) {
           assignedController.disableObjectVisible();
         }
 
@@ -262,8 +262,7 @@ namespace Evix.Controllers.Unity {
           newlyDeactivatedChunksCount++;
           break;
         case LoadedChunkMeshDataResolutionAperture.ChunkMeshMovedOutOfFocusEvent smmoof:
-          ChunkController assignedChunkController = getAssignedChunkController(smmoof.chunkLocation);
-          if (assignedChunkController != null) {
+          if (tryToGetAssignedChunkController(smmoof.chunkLocation, out ChunkController assignedChunkController)) {
             chunksWithOutOfFocusMeshes.Add(assignedChunkController);
             outOfFocusMeshesCount++;
           }
@@ -281,23 +280,22 @@ namespace Evix.Controllers.Unity {
     /// <param name="chunkLocation"></param>
     /// <returns>A bool for being used in Removeall, if the chunk should be removed from the wait queue.</returns>
     bool tryToAssignNewlyMeshedChunkToController(IVoxelChunk chunk) {
-      // try to find an unused chunk controller
-      if (getUnusedChunkController(chunk.location.vec3, out ChunkController unusedChunkController)
-        && unusedChunkController != null
-      ) {
-        // make sure this chunk can be assigned to a controller, if it can, do so and add the controller to the activation queue.
-        if (unusedChunkController.setChunkToRender(chunk)) {
+      if (chunk.isLoaded && chunk.isMeshed && !chunk.isEmpty && !chunk.mesh.isEmpty) {
+        // try to find an unused chunk controller and add it to the queue if it's valid
+        if (getUnusedChunkController(chunk.location.vec3, out ChunkController unusedChunkController)
+          && unusedChunkController != null
+        ) {
+          unusedChunkController.setChunkToRender(chunk);
           chunksWithNewlyGeneratedMeshes.Add(unusedChunkController);
           newlyGeneratedMeshesCount++;
           return true;
-          // if the chunk isn't meshable, we just drop it from the queue
-        } else {
-          // World.Debugger.log($"Chunk {chunkLocation} is unmeshable");
-          return true;
-        }
         // don't drop it yet, we didn't find a chunk controller.
+        } else {
+          return false;
+        }
+      // if the chunk isn't meshable, just drop it from the queue
       } else {
-        return false;
+        return true;
       }
     }
 
@@ -309,23 +307,21 @@ namespace Evix.Controllers.Unity {
       unusedChunkController = null;
       bool foundUnusedController = false;
       foreach (ChunkController chunkController in chunkControllerPool) {
-        if (chunkController != null) {
-          // if the chunk is active and already has the location we're looking for, we return false
-          if (chunkController.isActive) { // these ifs are seprate because of the else if below.
-            if (chunkController.chunkLocation == chunkLocationToSet) {
-              if (unusedChunkController != null) {
-                unusedChunkController.isActive = false;
-                unusedChunkController = null;
-              }
-
-              return false;
+        // if the chunk is active and already has the location we're looking for, we return false
+        if (chunkController.isActive) { // these ifs are seprate because of the else if below.
+          if (chunkController.chunkLocation == chunkLocationToSet) {
+            if (unusedChunkController != null) {
+              unusedChunkController.isActive = false;
+              unusedChunkController = null;
             }
-            // if we found an inactive controller, and we're still looking for that, lets snag it and stop looking.
-          } else if (!foundUnusedController) {
-            chunkController.isActive = true;
-            unusedChunkController = chunkController;
-            foundUnusedController = true;
+
+            return false;
           }
+          // if we found an inactive controller, and we're still looking for that, lets snag it and stop looking.
+        } else if (!foundUnusedController) {
+          chunkController.isActive = true;
+          unusedChunkController = chunkController;
+          foundUnusedController = true;
         }
       }
 
@@ -338,15 +334,16 @@ namespace Evix.Controllers.Unity {
     /// </summary>
     /// <param name="chunkLocation"></param>
     /// <returns></returns>
-    ChunkController getAssignedChunkController(Coordinate chunkLocation) {
-      ChunkController assignedChunkController = null;
+    bool tryToGetAssignedChunkController(Coordinate chunkLocation, out ChunkController assignedChunkController) {
+      assignedChunkController = null;
       foreach (ChunkController chunkController in chunkControllerPool) {
-        if (chunkController != null && chunkController.isActive && chunkController.chunkLocation == chunkLocation.vec3) {
+        if (chunkController.isActive && chunkController.chunkLocation == chunkLocation.vec3) {
           assignedChunkController = chunkController;
+          return true;
         }
       }
 
-      return assignedChunkController;
+      return false;
     }
 
     /// <summary>
