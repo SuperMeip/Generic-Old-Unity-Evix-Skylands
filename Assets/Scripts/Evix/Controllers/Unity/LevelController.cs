@@ -282,9 +282,7 @@ namespace Evix.Controllers.Unity {
     bool tryToAssignNewlyMeshedChunkToController(IVoxelChunk chunk) {
       if (chunk.isLoaded && chunk.isMeshed && !chunk.isEmpty && !chunk.mesh.isEmpty) {
         // try to find an unused chunk controller and add it to the queue if it's valid
-        if (getUnusedChunkController(chunk.location.vec3, out ChunkController unusedChunkController)
-          && unusedChunkController != null
-        ) {
+        if (getUnusedChunkController(chunk.location.vec3, out ChunkController unusedChunkController)) {
           unusedChunkController.setChunkToRender(chunk);
           chunksWithNewlyGeneratedMeshes.Add(unusedChunkController);
           newlyGeneratedMeshesCount++;

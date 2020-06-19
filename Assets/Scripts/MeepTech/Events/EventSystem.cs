@@ -1,6 +1,7 @@
 ﻿using MeepTech.GamingBasics;
 using System;
 using System.Collections.Generic;
+using System.Threading;
 
 namespace MeepTech.Events {
 
@@ -38,8 +39,11 @@ namespace MeepTech.Events {
       }
     }
 
+    ///// PUBLIC FUNCTIONS
+
     /// <summary>
     /// Subscribe to the listener list.
+    /// If the channel is left null then just sibscribe to all.
     /// </summary>
     public void subscribe(IObserver newListener, ChannelList? channelToSubscribeTo = null) {
       allListeners.Add(newListener);
@@ -53,12 +57,13 @@ namespace MeepTech.Events {
     /// </summary>
     /// <param name="event">The event to notify all listening observers of</param>
     /// <param name="origin">(optional) the osurce of the event</param>
-    public void notifyAllOf(IEvent @event, IObserver origin = null) {
-      if (debugMode) {
-        World.Debugger.log($"Notifiying ALL of {@event.name}");
-      }
-      foreach (IObserver observer in allListeners) {
-        observer.notifyOf(@event, origin);
+    public void notifyAllOf(IEvent @event, bool sendAsync = false, IObserver origin = null) {
+      if (sendAsync) {
+        new Thread(() => {
+          notifyAllOf(@event, origin);
+        }) { Name = $"{@event.name} - Messenger" }.Start();
+      } else {
+        notifyAllOf(@event, origin);
       }
     }
 
@@ -66,18 +71,20 @@ namespace MeepTech.Events {
     /// Notify all listening observers of an event
     /// </summary>
     /// <param name="event">The event to notify all listening observers of</param>
+    /// <param name="channelToNotify">The channel to notify</param>
+    /// <param name="sendAsync">(optional)Whether to send asyncly in a thread</param>
     /// <param name="origin">(optional) the osurce of the event</param>
-    public void notifyChannelOf(IEvent @event, ChannelList channelToNotify, IObserver origin = null) {
-      int channelNumber = Convert.ToInt32(channelToNotify);
-      if (channelNumber < listenersByChannel.Length && channelNumber > 0) {
-        if (debugMode) {
-          World.Debugger.log($"Notifiying channel: {channelToNotify} of {@event.name}");
-        }
-        foreach (IObserver observer in listenersByChannel[channelNumber]) {
-          observer.notifyOf(@event, origin);
-        }
-      } else ThrowMissingChannelException(channelNumber);
+    public void notifyChannelOf(IEvent @event, ChannelList channelToNotify, bool sendAsync = false, IObserver origin = null) {
+      if (sendAsync) {
+        new Thread(() => {
+          notifyChannelOf(@event, channelToNotify, origin);
+        }) { Name = $"{@event.name} - Messenger" }.Start();
+      } else {
+        notifyChannelOf(@event, channelToNotify, origin);
+      }
     }
+
+    ///// SUB FUNCTIONS
 
     /// <summary>
     /// Wrapper for adding to the channel subscriber list.
@@ -91,6 +98,37 @@ namespace MeepTech.Events {
     }
 
     /// <summary>
+    /// Notify all listening observers of an event
+    /// </summary>
+    /// <param name="event">The event to notify all listening observers of</param>
+    /// <param name="origin">(optional) the osurce of the event</param>
+    void notifyAllOf(IEvent @event, IObserver origin = null) {
+      if (debugMode) {
+        World.Debugger.log($"Notifiying ALL of {@event.name}");
+      }
+      foreach (IObserver observer in allListeners) {
+        observer.notifyOf(@event, origin);
+      }
+    }
+
+    /// <summary>
+    /// Notify all listening observers of an event
+    /// </summary>
+    /// <param name="event">The event to notify all listening observers of</param>
+    /// <param name="origin">(optional) the osurce of the event</param>
+    void notifyChannelOf(IEvent @event, ChannelList channelToNotify, IObserver origin = null) {
+      int channelNumber = Convert.ToInt32(channelToNotify);
+      if (channelNumber < listenersByChannel.Length && channelNumber > 0) {
+        if (debugMode) {
+          World.Debugger.log($"Notifiying channel: {channelToNotify} of {@event.name}");
+        }
+        foreach (IObserver observer in listenersByChannel[channelNumber]) {
+          observer.notifyOf(@event, origin);
+        }
+      } else ThrowMissingChannelException(channelNumber);
+    }
+
+    /// <summary>
     /// Throw a missing channel exception
     /// </summary>
     /// <param name="missingChannel"></param>
@@ -99,3 +137,4 @@ namespace MeepTech.Events {
     }
   }
 }
+

@@ -45,6 +45,8 @@ namespace Evix.Controllers.Unity {
     /// </summary>
     Vector3 previousWorldLocation;
 
+    ///// UNITY FUNCTIONS
+
     void Update() {
       /// check to see if we should update the chunks
       if (!isActive) {
@@ -60,7 +62,8 @@ namespace Evix.Controllers.Unity {
           // if the chunk has changed, let everyone know this player is in a new chunk
           World.EventSystem.notifyChannelOf(
             new Level.FocusChangedChunkLocationEvent(this),
-            EventSystems.WorldEventSystem.Channels.LevelFocusUpdates
+            EventSystems.WorldEventSystem.Channels.LevelFocusUpdates,
+            true
           );
           previousChunkLocation = chunkLocation;
         }
@@ -68,7 +71,6 @@ namespace Evix.Controllers.Unity {
     }
 
 #if DEBUG
-    ///// GUI FUNCTIONS
 
     void OnDrawGizmos() {
       // ignore gizmo if inactive
