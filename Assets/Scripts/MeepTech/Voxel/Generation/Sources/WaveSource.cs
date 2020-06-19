@@ -18,6 +18,12 @@ namespace MeepTech.Voxel.Generation.Sources {
     protected override float getNoiseValueAt(Coordinate location) {
       return location.y - noise.GetPerlin(location.x / xWaveFrequency, location.z / zWaveFrequency).GenMap(smoothness, value4, value5, value6) * 10 - 20;
     }
+
+    protected override Voxel.Type getVoxelTypeFor(float noiseValue, Coordinate location) {
+      return noiseValue > 0.5
+        ? Voxel.Types.Solid
+        : Voxel.Types.Empty;
+    }
   }
 
   public static class WaveSourceUtiliy {

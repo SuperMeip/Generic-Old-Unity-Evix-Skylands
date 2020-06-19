@@ -22,6 +22,13 @@ namespace MeepTech.Voxel.Collections.Level {
     }
 
     /// <summary>
+    /// The location of this chunk in the level (not the world location)
+    /// </summary>
+    public Coordinate location {
+      get;
+    }
+
+    /// <summary>
     /// The voxels in this chunk
     /// </summary>
     public IMesh mesh {
@@ -112,16 +119,16 @@ namespace MeepTech.Voxel.Collections.Level {
     /// <summary>
     /// Make a chunk out of voxel data
     /// </summary>
-    /// <param name="voxels">the voxel data of this chunk</param>
-    /// <param name="neighbors">the other chunks to link to</param>
-    public Chunk(IVoxelStorage voxels, IVoxelChunk[] neighbors = null, IMesh mesh = null) : this(voxels, neighbors) {
+    public Chunk(Coordinate levelLocation, IVoxelStorage voxels, IVoxelChunk[] neighbors = null, IMesh mesh = null) 
+      : this(levelLocation, voxels, neighbors) {
       this.mesh = mesh;
     }
 
     /// <summary>
     /// Private chunk constructor, capable of making an empty, unloaded chunk.
     /// </summary>
-    Chunk(IVoxelStorage voxels = null, IVoxelChunk[] neighbors = null) {
+    Chunk(Coordinate levelLocation, IVoxelStorage voxels = null, IVoxelChunk[] neighbors = null) {
+      location = levelLocation;
       this.voxels = voxels ?? new VoxelDictionary(Coordinate.Zero);
       if (neighbors != null) {
         this.neighbors = neighbors;
@@ -135,15 +142,15 @@ namespace MeepTech.Voxel.Collections.Level {
     /// Get an empty loaded chunk, used to signify space beyond the level.
     /// </summary>
     /// <returns></returns>
-    public static Chunk GetEmptyChunk(bool withEmptyNeighbors = false) {
+    public static Chunk GetEmptyChunk(Coordinate levelLocation, bool withEmptyNeighbors = false) {
       IVoxelChunk[] emptyNeighbors = null;
       if (withEmptyNeighbors) {
         emptyNeighbors = new IVoxelChunk[Directions.All.Length];
         foreach(Directions.Direction direction in Directions.All) {
-          emptyNeighbors[direction.Value] = GetEmptyChunk();
+          emptyNeighbors[direction.Value] = GetEmptyChunk(levelLocation + direction.Offset);
         }
       }
-      Chunk emptyChunk = new Chunk(null, emptyNeighbors);
+      Chunk emptyChunk = new Chunk(levelLocation, null, emptyNeighbors);
       emptyChunk.voxels.isLoaded = true;
 
       return emptyChunk;
@@ -157,7 +164,7 @@ namespace MeepTech.Voxel.Collections.Level {
     public Voxel.Type get(Coordinate location) {
       /// empty chunks have only air
       if (isEmpty) {
-        return Terrain.Types.Air;
+        return Voxel.Types.Empty;
       }
 
       // if this is out of bounds, try to get the value from the loaded neighbor
@@ -236,7 +243,7 @@ namespace MeepTech.Voxel.Collections.Level {
         return neighboringBlockType;
       }
 
-      return Terrain.Types.Air;
+      return Voxel.Types.Empty;
     }
 
     /// <summary>

@@ -96,6 +96,7 @@ LightmapSettings:
     m_PVRFilteringAtrousPositionSigmaAO: 1
     m_ExportTrainingData: 0
     m_TrainingDataDestination: TrainingData
+    m_LightProbeSampleCountMultiplier: 4
   m_LightingDataAsset: {fileID: 0}
   m_UseShadowmask: 1
 --- !u!196 &4
@@ -274,6 +275,7 @@ MonoBehaviour:
   m_Material: {fileID: 0}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
+  m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
@@ -320,8 +322,9 @@ Light:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 705507993}
   m_Enabled: 1
-  serializedVersion: 9
+  serializedVersion: 10
   m_Type: 1
+  m_Shape: 0
   m_Color: {r: 1, g: 0.95686275, b: 0.8392157, a: 1}
   m_Intensity: 1
   m_Range: 10
@@ -434,7 +437,7 @@ MonoBehaviour:
   levelController: {fileID: 338768709}
   SeaLevel: 600
   levelSize: {x: 1000, y: 20, z: 1000}
-  activeChunkRadius: 3
+  activeChunkRadius: 7
   activeChunkHeightOverride: 0
   meshedChunkBuffer: 2
   meshedChunkBufferHeightOverride: 0
@@ -575,6 +578,7 @@ MonoBehaviour:
   m_Material: {fileID: 0}
   m_Color: {r: 0.19607843, g: 0.19607843, b: 0.19607843, a: 1}
   m_RaycastTarget: 1
+  m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
@@ -775,10 +779,10 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 0}
     m_Modifications:
-    - target: {fileID: 7246505754626294864, guid: 75eecd0b3f9703644b6fa63e9b6219f6,
+    - target: {fileID: 209292225891516256, guid: 75eecd0b3f9703644b6fa63e9b6219f6,
         type: 3}
-      propertyPath: m_Name
-      value: Test Player
+      propertyPath: m_Enabled
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 993881110656298474, guid: 75eecd0b3f9703644b6fa63e9b6219f6,
         type: 3}
@@ -850,10 +854,10 @@ PrefabInstance:
       propertyPath: m_IsKinematic
       value: 1
       objectReference: {fileID: 0}
-    - target: {fileID: 209292225891516256, guid: 75eecd0b3f9703644b6fa63e9b6219f6,
+    - target: {fileID: 7246505754626294864, guid: 75eecd0b3f9703644b6fa63e9b6219f6,
         type: 3}
-      propertyPath: m_Enabled
-      value: 1
+      propertyPath: m_Name
+      value: Test Player
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 75eecd0b3f9703644b6fa63e9b6219f6, type: 3}

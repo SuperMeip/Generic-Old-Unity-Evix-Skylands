@@ -18,21 +18,12 @@ namespace MeepTech.Voxel.Generation.Sources {
     /// </summary>
     public int seed {
       get;
-      protected set;
-    }
-    /// <summary>
-    /// The density threshold of the isosurface, clamped to 0->1
-    /// </summary>
-    public float isoSurfaceLevel {
-      get;
-      protected set;
     }
 
     /// <summary>
     /// The noise generator used for this voxel source
     /// </summary>
-    protected Noise.FastNoise noise { get; }
-
+    protected Noise.FastNoise noise;
 
     /// <summary>
     /// Create a new voxel source
@@ -56,6 +47,13 @@ namespace MeepTech.Voxel.Generation.Sources {
     protected virtual void setUpNoise() { }
 
     /// <summary>
+    /// Get the voxel type for the density
+    /// </summary>
+    /// <param name="noiseValue"></param>
+    /// <returns></returns>
+    protected abstract Voxel.Type getVoxelTypeFor(float noiseValue, Coordinate location);
+
+    /// <summary>
     /// Generate all the voxels in the given collection with this source
     /// </summary>
     /// <param name="voxelData"></param>
@@ -69,35 +67,15 @@ namespace MeepTech.Voxel.Generation.Sources {
     /// <param name="location">The xyz to use as an offset for generating these voxels</param>
     /// <param name="voxelData">The voxel data to populate</param>
     public void generateAllAt(Coordinate location, IVoxelStorage voxelData) {
-      isoSurfaceLevel = getIsoSurfaceLevel();
       Coordinate.Zero.until(voxelData.bounds, (coordinate) => {
         VoxelsGenerated++;
         Coordinate globalLocation = coordinate + (location * voxelData.bounds);
-        float isoSurfaceDensityValue = getNoiseValueAt(globalLocation);
-        Voxel.Type newVoxelType = getVoxelTypeFor(isoSurfaceDensityValue);
-        if (newVoxelType != Terrain.Types.Air) {
+        float noiseValue = getNoiseValueAt(globalLocation);
+        Voxel.Type newVoxelType = getVoxelTypeFor(noiseValue, globalLocation);
+        if (newVoxelType != Voxel.Types.Empty) {
           voxelData.set(coordinate, newVoxelType);
         }
       });
-    }
-
-    /// <summary>
-    /// Get the voxel type for the density
-    /// </summary>
-    /// <param name="isoSurfaceDensityValue"></param>
-    /// <returns></returns>
-    protected virtual Voxel.Type getVoxelTypeFor(float isoSurfaceDensityValue) {
-      return isoSurfaceDensityValue < isoSurfaceLevel
-        ? Terrain.Types.Air
-        : Terrain.Types.Stone;
-    }
-
-    /// <summary>
-    /// Must be implimented, get the value to use as the iso surface level
-    /// </summary>
-    /// <returns></returns>
-    protected virtual float getIsoSurfaceLevel() {
-      return 0.5f;
     }
   }
 }

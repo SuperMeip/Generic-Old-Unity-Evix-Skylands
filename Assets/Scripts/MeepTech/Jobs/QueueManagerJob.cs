@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace MeepTech.Jobs {
@@ -7,54 +8,13 @@ namespace MeepTech.Jobs {
   /// <summary>
   /// A base job for managing chunk work queues
   /// </summary>
-  public abstract class QueueManagerJob<QueueItemType> : ThreadedJob 
+  public abstract class QueueManagerJob<QueueItemType> : ThreadedJob
     where QueueItemType : IComparable<QueueItemType> {
 
     /// <summary>
-    /// Child job for doing work on objects in the queue
+    /// The default maximum child job count
     /// </summary>
-    protected abstract class QueueTaskChildJob<ParentQueueItemType> : ThreadedJob
-      where ParentQueueItemType : IComparable<ParentQueueItemType> {
-
-      /// <summary>
-      /// The queue item this job will do work on
-      /// </summary>
-      protected ParentQueueItemType queueItem;
-
-      /// <summary>
-      /// The cancelation sources for waiting jobs
-      /// </summary>
-      protected QueueManagerJob<ParentQueueItemType> jobManager;
-
-      /// <summary>
-      /// Constructor
-      /// </summary>
-      protected QueueTaskChildJob(ParentQueueItemType queueItem, QueueManagerJob<ParentQueueItemType> jobManager) {
-        this.queueItem = queueItem;
-        this.jobManager = jobManager;
-      }
-
-      /// <summary>
-      /// The do work function
-      /// </summary>
-      /// <param name="queueItem"></param>
-      /// <param name="cancellationToken"></param>
-      protected abstract void doWork(ParentQueueItemType queueItem);
-
-      /// <summary>
-      /// Threaded function
-      /// </summary>
-      protected override void jobFunction() {
-        doWork(queueItem);
-      }
-
-      /// <summary>
-      /// On done, set the space free in the parent job
-      /// </summary>
-      protected override void finallyDo() {
-        jobManager.onJobComplete();
-      }
-    }
+    public const int DefaultMaxChildJobCount = 10;
 
     /// <summary>
     /// The currently queued up job count
@@ -62,16 +22,31 @@ namespace MeepTech.Jobs {
     public int queueCount {
       get => queue.Count();
     }
-    
+
     /// <summary>
     /// The queue this job is managing
     /// </summary>
-    protected ConcurrentQueue<QueueItemType> queue;
+    protected List<QueueItemType> queue;
+
+    /// <summary>
+    /// Items added to the queue externally
+    /// </summary>
+    protected ConcurrentBag<QueueItemType> newlyAddedQueueItems;
 
     /// <summary>
     /// If an item has been canceled, we just skip it when the queue runs.
     /// </summary>
     protected ConcurrentDictionary<QueueItemType, bool> canceledItems;
+
+    /// <summary>
+    /// Used for reporting what items this job manager is currently running on
+    /// </summary>
+    ConcurrentDictionary<QueueItemType, IThreadedJob> runningChildJobs;
+
+    /// <summary>
+    /// (Optional) a bottleneck for queue items to process at once
+    /// </summary>
+    int queueItemsToProcessBottleneck = 0;
 
     /// <summary>
     /// The max number of child jobs allowed
@@ -87,44 +62,32 @@ namespace MeepTech.Jobs {
     /// Create a new job, linked to the level
     /// </summary>
     /// <param name="level"></param>
-    protected QueueManagerJob(int maxChildJobsCount = 20) {
+    protected QueueManagerJob(int maxChildJobsCount = DefaultMaxChildJobCount, int queueBottleneck = 0) {
       runningJobCount = 0;
       this.maxChildJobsCount = maxChildJobsCount;
-      queue = new ConcurrentQueue<QueueItemType>();
+      queueItemsToProcessBottleneck = queueBottleneck;
+      queue = new List<QueueItemType>();
+      newlyAddedQueueItems = new ConcurrentBag<QueueItemType>();
       canceledItems = new ConcurrentDictionary<QueueItemType, bool>();
+      runningChildJobs = new ConcurrentDictionary<QueueItemType, IThreadedJob>();
     }
-
-    /// <summary>
-    /// Get the type of job we're managing in this queue
-    /// </summary>
-    /// <returns></returns>
-    protected abstract QueueTaskChildJob<QueueItemType> getChildJob(QueueItemType queueObject);
 
     /// <summary>
     /// Add a bunch of objects to the queue for processing
     /// </summary>
     /// <param name="queueObjects"></param>
     /// <param name="sortQueue">whether or not to sort the queue on add.</param>
-    public void enQueue(QueueItemType[] queueObjects, bool sortQueue = true) {
+    public void enqueue(QueueItemType[] queueObjects) {
       foreach (QueueItemType queueObject in queueObjects) {
         // if the chunk has already been canceled, don't requeue it right now
-        if (!(canceledItems.TryGetValue(queueObject, out bool hasBeenCanceled) && hasBeenCanceled)
-          && !queue.Contains(queueObject)) {
-          queue.Enqueue(queueObject);
+        if (!(canceledItems.TryGetValue(queueObject, out bool hasBeenCanceled) && hasBeenCanceled)) {
+          newlyAddedQueueItems.Add(queueObject);
         }
       }
 
-      if (sortQueue) {
-        this.sortQueue();
-      }
       // if the queue manager job isn't running, start it
       if (!isRunning) {
-        try {
-          start();
-        // if two items were enqueued quick sometimes it can try to start the same threat twice
-        } catch (System.Threading.ThreadStateException) {
-          return;
-        }
+        start();
       }
     }
 
@@ -133,76 +96,37 @@ namespace MeepTech.Jobs {
     /// </summary>
     /// <param name="queueObject"></param>
     /// <param name="sortQueue">whether or not to sort the queue on add.</param>
-    public void deQueue(QueueItemType[] queueObjects, bool sortQueue = true) {
+    public void dequeue(QueueItemType[] queueObjects) {
       if (isRunning) {
         foreach (QueueItemType queueObject in queueObjects) {
           if (queue.Contains(queueObject)) {
             canceledItems.TryAdd(queueObject, true);
           }
         }
-
-        if (sortQueue) {
-          this.sortQueue();
-        }
       }
     }
 
     /// <summary>
-    /// The threaded function to run
+    /// Get all the queue items in an array
     /// </summary>
-    protected override void jobFunction() {
-      // run while we have a queue
-      QueueItemType queueItem;
-      while (queue.Count() > 0) {
-        if (queue.TryPeek(out queueItem)) {
-          /// validate the queue item
-          // check if the item has a cancel token. If it does, 
-          if (canceledItems.TryGetValue(queueItem, out bool isCanceled)) {
-            // if it has a cancelation token stored, and that token is true, lets try to switch it off, and then equeue the current item from the queue.
-            if (isCanceled
-              && canceledItems.TryUpdate(queueItem, false, true)
-              && queue.TryDequeue(out queueItem)
-            ) {
-              canceledItems.TryRemove(queueItem, out _);
-            }
-            // if there's a cancelation token for this item, but it's set to false, we can just remove it.
-            if (!isCanceled) {
-              if (queue.TryDequeue(out queueItem)) {
-                canceledItems.TryRemove(queueItem, out _);
-              }
-            }
-
-            continue;
-          }
-
-          // check if we have a validity function
-          if (!isAValidQueueItem(queueItem)) {
-            if (queue.TryDequeue(out queueItem)) {
-              onQueueItemInvalid(queueItem);
-            }
-
-            continue;
-          }
-
-          // if we have space, pop off the top of the queue and run it as a job.
-          if (runningJobCount < maxChildJobsCount && itemIsReady(queueItem) && queue.TryDequeue(out queueItem)) {
-            runningJobCount++;
-            // The child job is responsible for removing itself from the running job count when done.
-            //    see QueueTaskChildJob.finallyDo()
-            getChildJob(queueItem).start();
-          }
-        }
-      }
+    /// <returns></returns>
+    public QueueItemType[] getAllQueuedItems() {
+      return queue.ToArray();
     }
 
     /// <summary>
-    /// Move the current front item to the end of the queue
+    /// Get all the items this job manager is currently running on
     /// </summary>
-    protected void moveItemToEndOfQueue() {
-      if (queue.TryDequeue(out QueueItemType queueItem)) {
-        queue.Enqueue(queueItem);
-      }
+    /// <returns></returns>
+    public QueueItemType[] getAllItemsWithRunningJobs() {
+      return runningChildJobs.Keys.ToArray();
     }
+
+    /// <summary>
+    /// Get the type of job we're managing in this queue
+    /// </summary>
+    /// <returns></returns>
+    protected abstract IThreadedJob getChildJob(QueueItemType queueObject);
 
     /// <summary>
     /// validate queue items
@@ -225,20 +149,157 @@ namespace MeepTech.Jobs {
     /// <summary>
     /// Do something when we find the queue item to be invalid before removing it
     /// </summary>
-    protected virtual void onQueueItemInvalid(QueueItemType queueItem) {
-      return;
+    protected virtual void onQueueItemInvalid(QueueItemType queueItem) { }
+
+    /// <summary>
+    /// Sort the queue after each run?
+    /// </summary>
+    protected virtual void sortQueue() { }
+
+    /// <summary>
+    /// Do something when new items are added to the queue
+    /// </summary>
+    protected virtual void onNewItemsQueued() {
+      sortQueue();
+    }
+
+    /// <summary>
+    /// The threaded function to run
+    /// </summary>
+    protected override void jobFunction() {
+      while (newlyAddedQueueItems.Count > 0 || queue.Count > 0) {
+        queueNewlyAddedItems();
+        int queueItemsProcessed = -1;
+        queue.RemoveAll(queueItem => {
+          // incrememnt the bottleneck checker
+          queueItemsProcessed++;
+          if (queueItemsToProcessBottleneck > 0 && queueItemsProcessed >= queueItemsToProcessBottleneck) {
+            return false;
+          }
+
+          // if the item has been canceled. Remove it.
+          if (itemIsCanceled(queueItem)) {
+            // World.Debugger.log($"{threadName} canceled {queueItem}");
+            return true;
+          }
+
+          // if the item is just invalid, remove it
+          if (!isAValidQueueItem(queueItem)) {
+            onQueueItemInvalid(queueItem);
+            return true;
+          }
+
+          // if we have space, pop off the top of the queue and run it as a job.
+          if (runningJobCount < maxChildJobsCount && itemIsReady(queueItem)) {
+            runningJobCount++;
+            IThreadedJob childJob = getChildJob(queueItem);
+            runningChildJobs.TryAdd(queueItem, childJob);
+            childJob.start();
+            // World.Debugger.log($"{threadName} has started job for {queueItem}");
+            return true;
+          }
+
+          return false;
+        });
+      }
     }
 
     /// <summary>
     /// De-increment how many jobs are running when one finishes.
     /// </summary>
-    internal virtual void onJobComplete() {
+    internal virtual void onJobComplete(QueueItemType queueItem) {
+      runningChildJobs.TryRemove(queueItem, out _);
       runningJobCount--;
     }
 
     /// <summary>
-    /// Sort the queue after each run?
+    /// Attempt to queue newly items from the bag
     /// </summary>
-    protected virtual void sortQueue() {}
+    void queueNewlyAddedItems() {
+      int itemsQueued = 0;
+      // get the # of assigned controllers at this moment in the bag.
+      int newlyQueuedItemCount = newlyAddedQueueItems.Count;
+      // we'll try to take that many items out this loop around.
+      while (0 < newlyQueuedItemCount--) {
+        if (newlyAddedQueueItems.TryTake(out QueueItemType newQueueItem)
+          && !queue.Contains(newQueueItem)
+        ) {
+          itemsQueued++;
+          queue.Add(newQueueItem);
+          // World.Debugger.log($"{threadName} has added {newQueueItem} to queue");
+        }
+      }
+
+      onNewItemsQueued();
+    }
+
+    /// <summary>
+    /// Check if the queue item has been canceled.
+    /// </summary>
+    /// <param name="queueItem"></param>
+    /// <returns></returns>
+    bool itemIsCanceled(QueueItemType queueItem) {
+      if (canceledItems.TryGetValue(queueItem, out bool isCanceled)) {
+        // if it has a cancelation token stored, and that token is true, lets try to switch it off, and then equeue the current item from the queue.
+        if (isCanceled && canceledItems.TryUpdate(queueItem, false, true)) {
+          canceledItems.TryRemove(queueItem, out _);
+          return true;
+        }
+
+        // if there's a cancelation token for this item, but it's set to false, we can just remove it.
+        if (!isCanceled) {
+          canceledItems.TryRemove(queueItem, out _);
+        }
+      }
+
+      return false;
+    }
+
+    /// <summary>
+    /// Child job for doing work on objects in the queue
+    /// </summary>
+    protected abstract class QueueTaskChildJob<ParentQueueManagerType, ParentQueueItemType> : ThreadedJob
+      where ParentQueueManagerType : QueueManagerJob<ParentQueueItemType>
+      where ParentQueueItemType : IComparable<ParentQueueItemType> {
+
+      /// <summary>
+      /// The queue item this job will do work on
+      /// </summary>
+      protected ParentQueueItemType queueItem;
+
+      /// <summary>
+      /// The cancelation sources for waiting jobs
+      /// </summary>
+      protected ParentQueueManagerType jobManager;
+
+      /// <summary>
+      /// Constructor
+      /// </summary>
+      protected QueueTaskChildJob(ParentQueueItemType queueItem, ParentQueueManagerType jobManager) {
+        this.queueItem = queueItem;
+        this.jobManager = jobManager;
+      }
+
+      /// <summary>
+      /// The do work function
+      /// </summary>
+      /// <param name="queueItem"></param>
+      /// <param name="cancellationToken"></param>
+      protected abstract void doWork(ParentQueueItemType queueItem);
+
+      /// <summary>
+      /// Threaded function
+      /// </summary>
+      protected override void jobFunction() {
+        doWork(queueItem);
+      }
+
+      /// <summary>
+      /// On done, set the space free in the parent job
+      /// </summary>
+      protected override void finallyDo() {
+        jobManager.onJobComplete(queueItem);
+      }
+    }
   }
 }

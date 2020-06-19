@@ -5,7 +5,7 @@ namespace MeepTech.Voxel.Collections.Level.Management {
   /// <summary>
   /// A base job for managing chunk work queues
   /// </summary>
-  public abstract class ChunkQueueManagerJob<ChunkManagerType> : QueueManagerJob2<Coordinate>
+  public abstract class ChunkQueueManagerJob<ChunkManagerType> : QueueManagerJob<Coordinate>
     where ChunkManagerType : IChunkResolutionAperture {
 
     /// <summary>

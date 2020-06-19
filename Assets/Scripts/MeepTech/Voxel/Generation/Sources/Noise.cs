@@ -42,6 +42,9 @@ using System.Runtime.CompilerServices;
 namespace MeepTech.Voxel.Generation.Sources {
   namespace Noise {
 
+    /// <summary>
+    /// Get noise values between -1.0 and 1.0
+    /// </summary>
     public class FastNoise {
       private const Int16 FN_INLINE = 256; //(Int16)MethodImplOptions.AggressiveInlining;
       private const int FN_CELLULAR_INDEX_MAX = 3;

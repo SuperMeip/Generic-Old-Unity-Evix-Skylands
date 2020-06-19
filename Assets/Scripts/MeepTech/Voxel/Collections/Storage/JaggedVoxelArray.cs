@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Evix.Terrain;
+using System;
 using System.Runtime.Serialization;
 
 namespace MeepTech.Voxel.Collections.Storage {
@@ -68,7 +69,7 @@ namespace MeepTech.Voxel.Collections.Storage {
     /// <returns></returns>
     public override Voxel.Type get(Coordinate location) {
       if (location.isWithin(Coordinate.Zero, bounds)) {
-        return Terrain.Types.Get(tryToGetValue(location));
+        return TerrainBlock.Types.Get(tryToGetValue(location));
       }
       throw new IndexOutOfRangeException();
     }

@@ -145,7 +145,7 @@ namespace MeepTech.Voxel.Collections.Level {
     public IVoxelChunk getChunk(Coordinate chunkLocation, bool withMeshes = false, bool withNeighbors = false, bool withNeighborsNeighbors = false, bool fullNeighborEncasement = false) {
       // just get an empty chunk for this one if this is out of bounds
       if (!chunkLocation.isWithin(Coordinate.Zero, chunkBounds)) {
-        return Chunk.GetEmptyChunk(withNeighbors);
+        return Chunk.GetEmptyChunk(chunkLocation, withNeighbors);
       }
 
       IVoxelStorage voxels = chunkDataStorage.getChunkVoxelData(chunkLocation);
@@ -159,7 +159,12 @@ namespace MeepTech.Voxel.Collections.Level {
         }
       }
 
-      return new Chunk(voxels, neighbors, withMeshes ? chunkDataStorage.getChunkMesh(chunkLocation) : null);
+      return new Chunk(
+        chunkLocation,
+        voxels,
+        neighbors,
+        withMeshes ? chunkDataStorage.getChunkMesh(chunkLocation) : null
+      );
     }
 
     /// <summary>

@@ -1,9 +1,11 @@
-﻿namespace MeepTech.Voxel {
+﻿using System.Drawing;
+
+namespace MeepTech.Voxel {
 
   /// <summary>
   /// USed for manipulating generic voxeltypes
   /// </summary>
-  interface IVoxelType {
+  public interface IVoxelType {
 
     /// <summary>
     /// The ID of the voxel
@@ -20,10 +22,9 @@
     }
 
     /// <summary>
-    /// How hard/solid this voxel is.
-    /// 0 is invisible, 1 is fully solid.
+    /// The color of this block
     /// </summary>
-    byte Density {
+    Color Color {
       get;
     }
   }

@@ -1,11 +1,7 @@
-﻿using MeepTech.Voxel.Collections.Storage;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using MeepTech.Voxel;
+using MeepTech.Voxel.Generation.Sources;
 
-namespace MeepTech.Voxel.Generation.Sources {
+namespace Evix.Terrain.Sources {
   public class FlatPlainsSource : VoxelSource {
 
     public float seaLevel = 30f;
@@ -25,8 +21,8 @@ namespace MeepTech.Voxel.Generation.Sources {
     /// </summary>
     /// <param name="isoSurfaceDensityValue"></param>
     /// <returns></returns>
-    protected override Voxel.Type getVoxelTypeFor(float isoSurfaceDensityValue) {
-      return Terrain.Types.Get((byte)(int)isoSurfaceDensityValue);
+    protected override Voxel.Type getVoxelTypeFor(float isoSurfaceDensityValue, Coordinate location) {
+      return TerrainBlock.Types.Get((byte)(int)isoSurfaceDensityValue);
     }
   }
 }

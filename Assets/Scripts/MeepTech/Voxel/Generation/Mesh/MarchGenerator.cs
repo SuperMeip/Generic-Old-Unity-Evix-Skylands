@@ -1,8 +1,7 @@
 ﻿using MeepTech.GamingBasics;
-using MeepTech.Voxel.Collections;
-using MeepTech.Voxel.Collections.Level;
 using MeepTech.Voxel.Collections.Storage;
 using UnityEngine;
+using Evix.Terrain;
 
 namespace MeepTech.Voxel.Generation.Mesh {
 
@@ -82,8 +81,8 @@ namespace MeepTech.Voxel.Generation.Mesh {
           
           // try to get color data from the terrain types
           blockVertexUVValues[i] = UVInterpolate(
-            blockTypes[edgeVerticies[0]] as Terrain.Type,
-            blockTypes[edgeVerticies[1]] as Terrain.Type
+            blockTypes[edgeVerticies[0]],
+            blockTypes[edgeVerticies[1]]
           );
         }
       }
@@ -113,12 +112,11 @@ namespace MeepTech.Voxel.Generation.Mesh {
     /// <param name="voxelTypeOne"></param>
     /// <param name="voxelTypeTwo"></param>
     /// <returns></returns>
-    static Color UVInterpolate(Terrain.Type voxelTypeOne, Terrain.Type voxelTypeTwo) {
-      return Color.Lerp(
-        voxelTypeOne == null ? Color.white : voxelTypeOne.Color,
-        voxelTypeTwo == null ? Color.white : voxelTypeTwo.Color,
-         0.5f
-      );
+    static Color UVInterpolate(IVoxelType voxelTypeOne, IVoxelType voxelTypeTwo) {
+      // if either of the corners is the non solid one, use the other corner's color
+      Color colorOne = (voxelTypeOne.IsSolid ? voxelTypeOne.Color : voxelTypeTwo.Color).ToUnityColor();
+      Color colorTwo = (voxelTypeTwo.IsSolid ? voxelTypeTwo.Color : voxelTypeOne.Color).ToUnityColor();
+      return Color.Lerp(colorOne, colorTwo, 0.5f);
     }
 
     /// <summary>

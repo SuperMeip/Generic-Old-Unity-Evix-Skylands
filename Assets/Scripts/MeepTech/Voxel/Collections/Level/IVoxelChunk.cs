@@ -30,6 +30,14 @@ namespace MeepTech.Voxel.Collections.Level {
     }
 
     /// <summary>
+    /// The X, Y, Z of this chunk's level location
+    /// (NOT the world location of the 0,0,0 of the chunk)
+    /// </summary>
+    Coordinate location {
+      get;
+    }
+
+    /// <summary>
     /// get the voxel data for this chunk
     /// </summary>
     IVoxelStorage voxels {

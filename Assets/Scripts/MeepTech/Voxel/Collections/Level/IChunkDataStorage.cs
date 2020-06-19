@@ -21,7 +21,7 @@ namespace MeepTech.Voxel.Collections.Level {
     /// <param name="voxelData"></param>
     void setChunkVoxelData(Coordinate chunkLocation, IVoxelStorage voxelData);
 
-    /// <summary>C:\Users\super\Projects\Unity\VoxelMarchingCubeTerrain\Assets\Scripts\MeepTech\Voxel\
+    /// <summary>
     /// Remove the chunk voxel data at the given location
     /// </summary>
     /// <param name="chunkLocation"></param>
@@ -45,14 +45,12 @@ namespace MeepTech.Voxel.Collections.Level {
     /// Clear the chunk mesh for the given chunk location
     /// </summary>
     /// <param name="chunkLocation"></param>
-    /// <param name="chunkMesh"></param>
     void removeChunkMesh(Coordinate chunkLocation);
 
     /// <summary>
     /// if this contains a mesh for the given chunk.
     /// </summary>
     /// <param name="chunkLocation"></param>
-    /// <param name="chunkMesh"></param>
     bool containsChunkMesh(Coordinate chunkLocation);
   }
 }

@@ -1,12 +1,13 @@
 ﻿
+using MeepTech.Voxel;
 using UnityEngine;
 
-namespace MeepTech.Voxel {
+namespace Evix.Terrain {
 
   /// <summary>
   /// Extention to Voxel, for terrain 'block' types
   /// </summary>
-  public abstract class Terrain : Voxel {
+  public abstract class TerrainBlock : Voxel {
 
     /// <summary>
     /// A terrain voxel type
@@ -14,12 +15,12 @@ namespace MeepTech.Voxel {
     public new abstract class Type : Voxel.Type {
 
       /// <summary>
-      /// If this block type is solid block or not
+      /// How hard/solid this block is. 0 is air.
       /// </summary>
-      public Color Color {
+      public byte Density {
         get;
         protected set;
-      } = Color.white;
+      } = 64;
 
       /// <summary>
       /// Make a new type
@@ -28,43 +29,57 @@ namespace MeepTech.Voxel {
       internal Type(byte id) : base(id) { }
     }
 
-
     /// <summary>
     /// A class for manipulating block types
     /// </summary>
-    public static class Types {
+    public new class Types {
 
       /// <summary>
       /// Air, an empty block
       /// </summary>
-      public static Type Air = new Air();
+      public static Type Air {
+        get;
+      } = new Air();
 
       /// <summary>
       /// Stone, a solid rock block
       /// </summary>
-      public static Type Stone = new Stone();
+      public static Type Stone {
+        get;
+      } = new Stone();
 
       /// <summary>
       /// Stone, a solid rock block
       /// </summary>
-      public static Type Dirt = new Dirt();
+      public static Type Dirt {
+        get;
+      } = new Dirt();
 
       /// <summary>
       /// Stone, a solid rock block
       /// </summary>
-      public static Type Placeholder = new Placeholder();
+      public static Type Placeholder {
+        get;
+      } = new Placeholder();
 
       /// <summary>
       /// All block types by id
       /// </summary>
-      public static Type[] All = {
+      public static Type[] All {
+        get;
+      } = {
         Air,
         Placeholder,
         Stone,
         Dirt
       };
 
-      public static Type Get(byte id) {
+      /// <summary>
+      /// Get the type by id
+      /// </summary>
+      /// <param name="id"></param>
+      /// <returns></returns>
+      public static Voxel.Type Get(byte id) {
         return All[id];
       }
     }
@@ -73,10 +88,11 @@ namespace MeepTech.Voxel {
   /// <summary>
   /// An air block, empty
   /// </summary>
-  internal class Air : Terrain.Type {
+  internal class Air : TerrainBlock.Type {
     internal Air() : base(0) {
       Density = 0;
       IsSolid = false;
+      Color = System.Drawing.Color.Transparent;
     }
   }
 
@@ -84,30 +100,38 @@ namespace MeepTech.Voxel {
   /// An empty block that's not air.
   /// Counts as solid but doesn't render
   /// </summary>
-  internal class Placeholder : Terrain.Type {
+  internal class Placeholder : TerrainBlock.Type {
     internal Placeholder() : base(1) {
-      Color = Color.black;
+      Color = System.Drawing.Color.Purple;
     }
   }
 
   /// <summary>
   /// Stone, a solid rock block
   /// </summary>
-  internal class Stone : Terrain.Type {
+  internal class Stone : TerrainBlock.Type {
     internal Stone() : base(2) {
       Density = 128;
-      Color = Color.blue;
+      Color = System.Drawing.Color.LightSlateGray;
     }
   }
 
   /// <summary>
   /// Dirt. a sort of solid block
   /// </summary>
-  internal class Dirt : Terrain.Type {
-
+  internal class Dirt : TerrainBlock.Type {
     internal Dirt() : base(3) {
       Density = 54;
-      Color = Color.green;
+      Color = System.Drawing.Color.Brown;
+    }
+  }
+
+  /// <summary>
+  /// Convert a system color to a unity color
+  /// </summary>
+  public static class ConvertToUnityColor {
+    public static Color ToUnityColor(this System.Drawing.Color input) {
+      return new Color32(input.R, input.G, input.B, input.A);
     }
   }
 }

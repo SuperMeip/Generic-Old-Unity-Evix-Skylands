@@ -1,5 +1,4 @@
 ﻿using MeepTech.Voxel.Collections.Level;
-using System.Threading;
 using Unity.Jobs;
 using UnityEngine;
 
@@ -82,10 +81,10 @@ namespace Evix.Controllers.Unity {
     /// </summary>
     /// <param name="chunk"></param>
     /// <param name="chunkLevelLocation"></param>
-    public bool setChunkToRender(IVoxelChunk chunk, Vector3 chunkLevelLocation) {
+    public bool setChunkToRender(IVoxelChunk chunk) {
       if (chunk.isLoaded && chunk.isMeshed && !chunk.isEmpty && !chunk.mesh.isEmpty) {
         currentChunk = chunk;
-        chunkLocation = chunkLevelLocation;
+        chunkLocation = chunk.location.vec3;
         isMeshed = false;
 
         return true;

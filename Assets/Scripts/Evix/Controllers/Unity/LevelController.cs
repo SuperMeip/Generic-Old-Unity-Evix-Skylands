@@ -38,14 +38,24 @@ namespace Evix.Controllers.Unity {
     ChunkController[] chunkControllerPool;
 
     /// <summary>
-    /// Chunk controllers waiting for assignement and activation
+    /// counter for new chunks waiting for controllers
     /// </summary>
-    ConcurrentBag<Vector3> chunksWaitingForAFreeController;
+    int newChunkCount = 0;
 
     /// <summary>
     /// Chunk controllers waiting for assignement and activation
     /// </summary>
-    List<Vector3> chunkControllerAssignmentWaitQueue;
+    ConcurrentBag<IVoxelChunk> chunksWaitingForAFreeController;
+
+    /// <summary>
+    /// Chunk controllers waiting for assignement and activation
+    /// </summary>
+    List<IVoxelChunk> chunkControllerAssignmentWaitQueue;
+
+    /// <summary>
+    /// counter for newly activated chunks waiting to enqueue
+    /// </summary>
+    int newlyActivatedChunksCount = 0;
 
     /// <summary>
     /// Chunk controllers waiting for assignement and activation
@@ -58,6 +68,11 @@ namespace Evix.Controllers.Unity {
     List<Coordinate> chunksToActivate;
 
     /// <summary>
+    /// The counter for newly deactivating chunks waiting to queue
+    /// </summary>
+    int newlyDeactivatedChunksCount = 0;
+
+    /// <summary>
     /// Chunk controllers waiting for assignement and activation
     /// </summary>
     ConcurrentBag<Coordinate> newlyDeactivatedChunks;
@@ -68,6 +83,11 @@ namespace Evix.Controllers.Unity {
     List<Coordinate> chunksToDeactivate;
 
     /// <summary>
+    /// The counter for newly gen'd meshes.
+    /// </summary>
+    int newlyGeneratedMeshesCount = 0;
+
+    /// <summary>
     /// Chunk controllers waiting for assignement and activation
     /// </summary>
     ConcurrentBag<ChunkController> chunksWithNewlyGeneratedMeshes;
@@ -76,6 +96,11 @@ namespace Evix.Controllers.Unity {
     /// Chunk controllers waiting for assignement and activation
     /// </summary>
     List<ChunkController> chunksToMesh;
+
+    /// <summary>
+    /// counter for out of focus meshes waiting to queue
+    /// </summary>
+    int outOfFocusMeshesCount = 0;
 
     /// <summary>
     /// Chunk controllers waiting for assignement and activation
@@ -158,8 +183,8 @@ namespace Evix.Controllers.Unity {
       } else {
         /// init
         this.level = level;
-        chunksWaitingForAFreeController = new ConcurrentBag<Vector3>();
-        chunkControllerAssignmentWaitQueue = new List<Vector3>();
+        chunksWaitingForAFreeController = new ConcurrentBag<IVoxelChunk>();
+        chunkControllerAssignmentWaitQueue = new List<IVoxelChunk>();
         chunksWithNewlyGeneratedMeshes = new ConcurrentBag<ChunkController>();
         chunksToMesh = new List<ChunkController>();
         newlyActivatedChunks = new ConcurrentBag<Coordinate>();
@@ -221,21 +246,26 @@ namespace Evix.Controllers.Unity {
       switch (@event) {
         // when a chunk mesh comes into focus, or loads, set the mesh to a chunkManager
         case LoadedChunkMeshDataResolutionAperture.ChunkMeshLoadingFinishedEvent cmfle:
-          if (!tryToAssignNewlyMeshedChunkToController(cmfle.chunkLocation.vec3)) {
-            chunksWaitingForAFreeController.Add(cmfle.chunkLocation.vec3);
+          IVoxelChunk chunk = level.getChunk(cmfle.chunkLocation, true);
+          if (!tryToAssignNewlyMeshedChunkToController(chunk)) {
+            chunksWaitingForAFreeController.Add(chunk);
+            newChunkCount++;
           }
           break;
         // when the level finishes loading a chunk's mesh. Render it in world
         case ActivateGameobjectResolutionAperture.SetChunkObjectActiveEvent scoae:
           newlyActivatedChunks.Add(scoae.chunkLocation);
+          newlyActivatedChunksCount++;
           break;
         case ActivateGameobjectResolutionAperture.SetChunkObjectInactiveEvent scoie:
           newlyDeactivatedChunks.Add(scoie.chunkLocation);
+          newlyDeactivatedChunksCount++;
           break;
         case LoadedChunkMeshDataResolutionAperture.ChunkMeshMovedOutOfFocusEvent smmoof:
           ChunkController assignedChunkController = getAssignedChunkController(smmoof.chunkLocation);
           if (assignedChunkController != null) {
             chunksWithOutOfFocusMeshes.Add(assignedChunkController);
+            outOfFocusMeshesCount++;
           }
           break;
         default:
@@ -250,15 +280,15 @@ namespace Evix.Controllers.Unity {
     /// </summary>
     /// <param name="chunkLocation"></param>
     /// <returns>A bool for being used in Removeall, if the chunk should be removed from the wait queue.</returns>
-    bool tryToAssignNewlyMeshedChunkToController(Vector3 chunkLocation) {
+    bool tryToAssignNewlyMeshedChunkToController(IVoxelChunk chunk) {
       // try to find an unused chunk controller
-      if (getUnusedChunkController(chunkLocation, out ChunkController unusedChunkController)
+      if (getUnusedChunkController(chunk.location.vec3, out ChunkController unusedChunkController)
         && unusedChunkController != null
       ) {
         // make sure this chunk can be assigned to a controller, if it can, do so and add the controller to the activation queue.
-        IVoxelChunk chunk = level.getChunk(chunkLocation.toCoordinate(), true);
-        if (unusedChunkController.setChunkToRender(chunk, chunkLocation)) {
+        if (unusedChunkController.setChunkToRender(chunk)) {
           chunksWithNewlyGeneratedMeshes.Add(unusedChunkController);
+          newlyGeneratedMeshesCount++;
           return true;
           // if the chunk isn't meshable, we just drop it from the queue
         } else {
@@ -324,13 +354,15 @@ namespace Evix.Controllers.Unity {
     /// </summary>
     void queueNewChunksWaitingForControllers() {
       // get the # of assigned controllers at this moment in the bag.
-      int newChunkCount = chunksWaitingForAFreeController.Count;
+      int newChunkCurrentCount = newChunkCount;
+
       // we'll try to take that many items out this loop around.
-      while (0 < newChunkCount--) {
-        if (chunksWaitingForAFreeController.TryTake(out Vector3 newChunkLocation)
+      while (0 < newChunkCurrentCount--) {
+        if (chunksWaitingForAFreeController.TryTake(out IVoxelChunk newChunkLocation)
           && !chunkControllerAssignmentWaitQueue.Contains(newChunkLocation)
         ) {
           chunkControllerAssignmentWaitQueue.Add(newChunkLocation);
+          newChunkCount--;
         }
       }
     }
@@ -339,14 +371,16 @@ namespace Evix.Controllers.Unity {
     /// Attempt to queue newly assigned chunk controllers from the bag
     /// </summary>
     void queueChunksWithNewlyGeneratedMeshes() {
-      // get the # of assigned controllers at this moment in the bag.
-      int newlyGeneratedMeshesCount = chunksWithNewlyGeneratedMeshes.Count;
+      // get the # of assigned controllers at this moment in the bag
+      int newlyGeneratedMeshesCurrentCount = newlyGeneratedMeshesCount;
+
       // we'll try to take that many items out this loop around.
-      while (0 < newlyGeneratedMeshesCount--) {
+      while (0 < newlyGeneratedMeshesCurrentCount--) {
         if (chunksWithNewlyGeneratedMeshes.TryTake(out ChunkController chunkWithNewMeshLocation)
           && !chunksToMesh.Contains(chunkWithNewMeshLocation)
         ) {
           chunksToMesh.Add(chunkWithNewMeshLocation);
+          newlyGeneratedMeshesCount--;
         }
       }
     }
@@ -356,13 +390,15 @@ namespace Evix.Controllers.Unity {
     /// </summary>
     void queueChunksWithOutOfFocusMeshes() {
       // get the # of assigned controllers at this moment in the bag.
-      int outOfFocusMeshes = chunksWithOutOfFocusMeshes.Count;
+      int outOfFocusMeshesCurrentCount = outOfFocusMeshesCount;
+
       // we'll try to take that many items out this loop around.
-      while (0 < outOfFocusMeshes--) {
+      while (0 < outOfFocusMeshesCurrentCount--) {
         if (chunksWithOutOfFocusMeshes.TryTake(out ChunkController chunkWithNewMeshLocation)
           && !chunksToDeMesh.Contains(chunkWithNewMeshLocation)
         ) {
           chunksToDeMesh.Add(chunkWithNewMeshLocation);
+          outOfFocusMeshesCount--;
         }
       }
     }
@@ -372,13 +408,15 @@ namespace Evix.Controllers.Unity {
     /// </summary>
     void queueNewlyActivatedChunks() {
       // get the # of assigned controllers at this moment in the bag.
-      int newlyActivatedChunksCount = newlyActivatedChunks.Count;
+      int newlyActivatedChunksCurrentCount = newlyActivatedChunksCount;
+
       // we'll try to take that many items out this loop around.
-      while (0 < newlyActivatedChunksCount--) {
+      while (0 < newlyActivatedChunksCurrentCount--) {
         if (newlyActivatedChunks.TryTake(out Coordinate newlyDeactivatedChunkLocation)
           && !chunksToActivate.Contains(newlyDeactivatedChunkLocation)
         ) {
           chunksToActivate.Add(newlyDeactivatedChunkLocation);
+          newlyActivatedChunksCount--;
         }
       }
     }
@@ -388,13 +426,15 @@ namespace Evix.Controllers.Unity {
     /// </summary>
     void queueNewlyDeactivatedChunks() {
       // get the # of assigned controllers at this moment in the bag.
-      int newlyDeactivatedChunksCount = newlyDeactivatedChunks.Count;
+      int newlyDeactivatedChunksCurrentCount = newlyDeactivatedChunksCount;
+
       // we'll try to take that many items out this loop around.
-      while (0 < newlyDeactivatedChunksCount--) {
+      while (0 < newlyDeactivatedChunksCurrentCount--) {
         if (newlyDeactivatedChunks.TryTake(out Coordinate newlyDeactivatedChunkLocation)
           && !chunksToDeactivate.Contains(newlyDeactivatedChunkLocation)
         ) {
           chunksToDeactivate.Add(newlyDeactivatedChunkLocation);
+          newlyDeactivatedChunksCount--;
         }
       }
     }

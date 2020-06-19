@@ -88,5 +88,9 @@ namespace MeepTech.Voxel.Generation.Biomes {
     protected override float getNoiseValueAt(Coordinate location) {
       throw new NotImplementedException();
     }
+
+    protected override Voxel.Type getVoxelTypeFor(float noiseValue, Coordinate location) {
+      throw new NotImplementedException();
+    }
   }
 }

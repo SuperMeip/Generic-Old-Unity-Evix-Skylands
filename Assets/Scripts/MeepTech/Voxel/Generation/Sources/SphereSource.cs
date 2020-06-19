@@ -30,5 +30,11 @@ namespace MeepTech.Voxel.Generation.Sources {
       float distance = Math.Abs(sphereCenter.distance(coordinate));
       return RangeUtilities.ClampToFloat(distance, 0, (int)((sphereRadius) * 1.5f));
     }
+
+    protected override Voxel.Type getVoxelTypeFor(float noiseValue, Coordinate location) {
+      return noiseValue > 0.5
+        ? Voxel.Types.Solid
+        : Voxel.Types.Empty;
+    }
   }
 }
