@@ -58,14 +58,14 @@ namespace MeepTech.Voxel.Collections.Level.Management {
     /// <param name="chunkLocations"></param>
     protected override void addChunksToUnload(Coordinate[] chunkLocations) {
       chunkObjectActivationJobManager.dequeue(chunkLocations);
-      new Thread(() => {
+      ThreadPool.QueueUserWorkItem(new WaitCallback((state) => {
         foreach (Coordinate chunkLocation in chunkLocations) {
           World.EventSystem.notifyChannelOf(
             new SetChunkObjectInactiveEvent(chunkLocation),
             Evix.EventSystems.WorldEventSystem.Channels.ChunkActivationUpdates
           );
         }
-      }) { Name = "Deactivate Chunks Messenger" }.Start();
+      }));
     }
 
     /// <summary>
@@ -79,16 +79,6 @@ namespace MeepTech.Voxel.Collections.Level.Management {
       /// <param name="level"></param>
       public JActivateChunkObjects(ActivateGameobjectResolutionAperture manager) : base(manager) {
         threadName = "Activate Chunk Object Manager";
-      }
-
-      /// <summary>
-      /// get the child job given the values
-      /// </summary>
-      /// <param name="chunkLocation"></param>
-      /// <param name="parentCancelationSources"></param>
-      /// <returns></returns>
-      protected override IThreadedJob getChildJob(Coordinate chunkLocation) {
-        return new JActivateChunkObject(this, chunkLocation);
       }
 
       /// <summary>
@@ -111,12 +101,12 @@ namespace MeepTech.Voxel.Collections.Level.Management {
         // @TODO: cull this better, instead of isfull, maybe use a system to determine if it's visible to a player or not,
         // this notification should only be sent if a chunk needs to be rendered badly because it's missing.
         if (chunk.isLoaded && !chunk.isMeshed && !chunk.isEmpty && !chunk.isFull) {
-          new Thread(() => {
+          ThreadPool.QueueUserWorkItem(new WaitCallback((state) => {
             World.EventSystem.notifyChannelOf(
               new ChunkWaitingForActiveMissingMeshEvent(chunkLocation),
               Evix.EventSystems.WorldEventSystem.Channels.ChunkActivationUpdates
             );
-          }) { Name = "Missing Mesh Messenger"}.Start();
+          }));
         }
 
         return true;
@@ -133,40 +123,23 @@ namespace MeepTech.Voxel.Collections.Level.Management {
       }
 
       /// <summary>
-      /// sort items by the focus area they're in?
+      /// sort items by the focus area they're in
       /// </summary>
-      protected override void sortQueue() {
-        chunkManager.sortByFocusDistance(ref queue);
+      protected override float getPriority(Coordinate chunkLocation) {
+        return chunkManager.getClosestFocusDistance(chunkLocation);
       }
 
       /// <summary>
-      /// Child job for doing work on the chunk
+      /// Send a notification to tell the level to set the chunk active/visible
       /// </summary>
-      protected class JActivateChunkObject : QueueTaskChildJob<JActivateChunkObjects, Coordinate> {
-
-        /// <summary>
-        /// Make a new job
-        /// </summary>
-        /// <param name="level"></param>
-        /// <param name="chunkLocation"></param>
-        internal JActivateChunkObject(
-          JActivateChunkObjects jobManager,
-          Coordinate chunkLocation
-        ) : base(chunkLocation, jobManager) {
-          threadName = "Tell Game Engine to activate Gameobject for Chunk: " + queueItem.ToString();
-        }
-
-        /// <summary>
-        /// generate the chunk mesh if the level doesn't have it yet.
-        /// </summary>
-        protected override void doWork(Coordinate chunkLocation) {
-          IVoxelChunk chunk = jobManager.chunkManager.level.getChunk(chunkLocation, true);
-          if (chunk.isMeshed && !chunk.mesh.isEmpty) {
-            World.EventSystem.notifyChannelOf(
-              new SetChunkObjectActiveEvent(chunkLocation),
-              Evix.EventSystems.WorldEventSystem.Channels.ChunkActivationUpdates
-            );
-          }
+      /// <param name="chunkLocation"></param>
+      protected override void childJob(Coordinate chunkLocation) {
+        IVoxelChunk chunk = chunkManager.level.getChunk(chunkLocation, true);
+        if (chunk.isMeshed && !chunk.mesh.isEmpty) {
+          World.EventSystem.notifyChannelOf(
+            new SetChunkObjectActiveEvent(chunkLocation),
+            Evix.EventSystems.WorldEventSystem.Channels.ChunkActivationUpdates
+          );
         }
       }
     }
@@ -259,3 +232,4 @@ namespace MeepTech.Voxel.Collections.Level.Management {
     }
   }
 }
+

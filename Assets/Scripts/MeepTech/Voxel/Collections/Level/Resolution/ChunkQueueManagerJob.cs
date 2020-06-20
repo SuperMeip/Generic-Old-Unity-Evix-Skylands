@@ -5,7 +5,7 @@ namespace MeepTech.Voxel.Collections.Level.Management {
   /// <summary>
   /// A base job for managing chunk work queues
   /// </summary>
-  public abstract class ChunkQueueManagerJob<ChunkManagerType> : QueueManagerJob<Coordinate>
+  public abstract class ChunkQueueManagerJob<ChunkManagerType> : PriorityQueueManagerJob<float, Coordinate>
     where ChunkManagerType : IChunkResolutionAperture {
 
     /// <summary>
@@ -19,7 +19,7 @@ namespace MeepTech.Voxel.Collections.Level.Management {
     /// <summary>
     /// Create a new job, linked to the level via it's manager
     /// </summary>
-    protected ChunkQueueManagerJob(ChunkManagerType manager, int queueBottleneck = 0, int maxJobsCount = DefaultMaxChildJobCount) : base(maxJobsCount, queueBottleneck) {
+    protected ChunkQueueManagerJob(ChunkManagerType manager) : base() {
       chunkManager = manager;
     }
   }

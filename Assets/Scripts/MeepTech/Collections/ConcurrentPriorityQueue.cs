@@ -11,7 +11,7 @@ using System.Diagnostics;
 
 namespace System.Collections.Concurrent {
   /// <summary>Provides a thread-safe priority queue data structure.</summary>
-  /// <typeparam name="TKey">Specifies the type of keys used to prioritize values.</typeparam>
+  /// <typeparam name="TKey">Specifies the type of keys used to prioritize values. Lower is higher priority</typeparam>
   /// <typeparam name="TValue">Specifies the type of elements in the queue.</typeparam>
   [DebuggerDisplay("Count={Count}")]
 

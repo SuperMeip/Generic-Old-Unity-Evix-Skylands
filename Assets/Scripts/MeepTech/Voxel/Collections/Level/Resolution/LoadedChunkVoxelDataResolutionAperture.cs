@@ -1,5 +1,4 @@
 ﻿
-using MeepTech.Jobs;
 using MeepTech.Voxel.Collections.Storage;
 using System;
 using System.IO;
@@ -30,7 +29,7 @@ namespace MeepTech.Voxel.Collections.Level.Management {
     /// <summary>
     /// The job used to generate chunks
     /// </summary>
-    readonly JGenerateTerrainDataForChunks chunkGenerationJobManager;
+    readonly JGenerateTerrainDataForChunks chunkGenerationManagerJob;
 
     /// <summary>
     /// Construct
@@ -41,7 +40,7 @@ namespace MeepTech.Voxel.Collections.Level.Management {
     internal LoadedChunkVoxelDataResolutionAperture(int managedChunkRadius, int managedChunkHeight = 0) 
     : base (managedChunkRadius, managedChunkHeight) {
       chunkFileLoadQueueManagerJob = new JLoadChunksFromFile(this);
-      chunkGenerationJobManager = new JGenerateTerrainDataForChunks(this);
+      chunkGenerationManagerJob = new JGenerateTerrainDataForChunks(this);
       chunkUnloadToFileQueueManagerJob = new JUnloadChunks(this);
     }
 
@@ -53,7 +52,7 @@ namespace MeepTech.Voxel.Collections.Level.Management {
     /// <returns></returns>
     public override Coordinate[] getQueuedChunks() {
       return chunkFileLoadQueueManagerJob.getAllQueuedItems()
-        .Concat(chunkGenerationJobManager.getAllQueuedItems()).ToArray();
+        .Concat(chunkGenerationManagerJob.getAllQueuedItems()).ToArray();
     }
 
     /// <summary>
@@ -62,7 +61,7 @@ namespace MeepTech.Voxel.Collections.Level.Management {
     /// <returns></returns>
     public override Coordinate[] getProcessingChunks() {
       return chunkFileLoadQueueManagerJob.getAllItemsWithRunningJobs()
-        .Concat(chunkGenerationJobManager.getAllItemsWithRunningJobs()).ToArray();
+        .Concat(chunkGenerationManagerJob.getAllItemsWithRunningJobs()).ToArray();
     }
 #endif
 
@@ -81,7 +80,7 @@ namespace MeepTech.Voxel.Collections.Level.Management {
     /// <param name="chunkLocations"></param>
     protected override void addChunksToUnload(Coordinate[] chunkLocations) {
       chunkFileLoadQueueManagerJob.dequeue(chunkLocations);
-      chunkGenerationJobManager.dequeue(chunkLocations);
+      chunkGenerationManagerJob.dequeue(chunkLocations);
       chunkUnloadToFileQueueManagerJob.enqueue(chunkLocations);
     }
 
@@ -171,16 +170,8 @@ namespace MeepTech.Voxel.Collections.Level.Management {
       /// Create a new job, linked to the level
       /// </summary>
       /// <param name="level"></pa
-      public JLoadChunksFromFile(LoadedChunkVoxelDataResolutionAperture<VoxelStorageType> manager) : base(manager, 25) {
+      public JLoadChunksFromFile(LoadedChunkVoxelDataResolutionAperture<VoxelStorageType> manager) : base(manager) {
         threadName = "Load Chunk Data Manager";
-      }
-
-      /// <summary>
-      /// Get the correct child job
-      /// </summary>
-      /// <returns></returns>
-      protected override IThreadedJob getChildJob(Coordinate chunkColumnLocation) {
-        return new JLoadChunkFromFile(this, chunkColumnLocation);
       }
 
       /// <summary>
@@ -192,7 +183,7 @@ namespace MeepTech.Voxel.Collections.Level.Management {
         // if this doesn't have a loaded file, remove it from this queue and load it in the generation one
         if (chunkManager.isWithinManagedBounds(chunkLocation)) {
           if (!File.Exists(chunkManager.getChunkFileName(chunkLocation))) {
-            chunkManager.chunkGenerationJobManager.enqueue(new Coordinate[] { chunkLocation });
+            chunkManager.chunkGenerationManagerJob.enqueue(new Coordinate[] { chunkLocation });
             return false;
           }
         } else {
@@ -203,39 +194,21 @@ namespace MeepTech.Voxel.Collections.Level.Management {
       }
 
       /// <summary>
-      /// sort items by the focus area they're in?
+      /// sort items by the focus area they're in
       /// </summary>
-      protected override void sortQueue() {
-        chunkManager.sortByFocusDistance(ref queue, 1.5f);
+      protected override float getPriority(Coordinate chunkLocation) {
+        return chunkManager.getClosestFocusDistance(chunkLocation, 1.5f);
       }
 
       /// <summary>
-      /// A Job for loading the data for a column of chunks into a level from file
+      /// Try to load the voxel data from file
       /// </summary>
-      class JLoadChunkFromFile : QueueTaskChildJob<JLoadChunksFromFile, Coordinate> {
-
-        /// <summary>
-        /// Constructor
-        /// </summary>
-        /// <param name="level"></param>
-        /// <param name="chunkColumnLocation"></param>
-        /// <param name="parentCancellationSources"></param>
-        internal JLoadChunkFromFile(
-          JLoadChunksFromFile jobManager,
-          Coordinate chunkColumnLocation
-        ) : base(chunkColumnLocation, jobManager) {
-          threadName = "Load Column: " + chunkColumnLocation;
-        }
-
-        /// <summary>
-        /// Threaded function, loads all the voxel data for this chunk
-        /// </summary>
-        protected override void doWork(Coordinate chunkLocation) {
-          IVoxelChunk chunk = jobManager.chunkManager.level.getChunk(chunkLocation);
-          if (chunk.isEmpty && !chunk.isLoaded) {
-            VoxelStorageType voxelData = jobManager.chunkManager.getVoxelDataForChunkFromFile(chunkLocation);
-            jobManager.chunkManager.level.chunkDataStorage.setChunkVoxelData(chunkLocation, voxelData);
-          }
+      /// <param name="queueItem"></param>
+      protected override void childJob(Coordinate chunkLocation) {
+        IVoxelChunk chunk = chunkManager.level.getChunk(chunkLocation);
+        if (chunk.isEmpty && !chunk.isLoaded) {
+          VoxelStorageType voxelData = chunkManager.getVoxelDataForChunkFromFile(chunkLocation);
+          chunkManager.level.chunkDataStorage.setChunkVoxelData(chunkLocation, voxelData);
         }
       }
     }
@@ -249,17 +222,8 @@ namespace MeepTech.Voxel.Collections.Level.Management {
       /// Create a new job, linked to the level
       /// </summary>
       /// <param name="level"></param>
-      public JGenerateTerrainDataForChunks(LoadedChunkVoxelDataResolutionAperture<VoxelStorageType> manager) : base(manager, 25) {
+      public JGenerateTerrainDataForChunks(LoadedChunkVoxelDataResolutionAperture<VoxelStorageType> manager) : base(manager) {
         threadName = "Generate Chunk Manager";
-      }
-
-      /// <summary>
-      /// Get the correct child job
-      /// </summary>
-      /// <param name="chunkColumnLocation"></param>
-      /// <returns></returns>
-      protected override IThreadedJob getChildJob(Coordinate chunkColumnLocation) {
-        return new JGenerateTerrainDataForChunk(this, chunkColumnLocation);
       }
 
       /// <summary>
@@ -276,40 +240,22 @@ namespace MeepTech.Voxel.Collections.Level.Management {
       }
 
       /// <summary>
-      /// sort items by the focus area they're in?
+      /// sort items by the focus area they're in
       /// </summary>
-      protected override void sortQueue() {
-        chunkManager.sortByFocusDistance(ref queue, 1.5f);
+      protected override float getPriority(Coordinate chunkLocation) {
+        return chunkManager.getClosestFocusDistance(chunkLocation, 1.5f);
       }
 
       /// <summary>
-      /// A Job for generating a new column of chunks into a level
+      /// Generate the voxel data for the chunk from the voxel source
       /// </summary>
-      class JGenerateTerrainDataForChunk : QueueTaskChildJob<JGenerateTerrainDataForChunks, Coordinate> {
-
-        /// <summary>
-        /// constructor
-        /// </summary>
-        /// <param name="level"></param>
-        /// <param name="chunkLocation"></param>
-        /// <param name="parentCancellationSources"></param>
-        internal JGenerateTerrainDataForChunk(
-          JGenerateTerrainDataForChunks jobManager,
-          Coordinate chunkLocation
-        ) : base(chunkLocation, jobManager) {
-          threadName = "Generating voxels for chunk: " + chunkLocation;
-        }
-
-        /// <summary>
-        /// Threaded function, loads all the voxel data for this chunk
-        /// </summary>
-        protected override void doWork(Coordinate chunkLocation) {
-          // if the chunk is empty, lets try to fill it.
-          IVoxelChunk chunk = jobManager.chunkManager.level.getChunk(chunkLocation);
-          if (chunk.isEmpty && !chunk.isLoaded) {
-            IVoxelStorage voxelData = jobManager.chunkManager.generateVoxelDataForChunk(chunkLocation);
-            jobManager.chunkManager.level.chunkDataStorage.setChunkVoxelData(chunkLocation, voxelData);
-          }
+      /// <param name="queueItem"></param>
+      protected override void childJob(Coordinate chunkLocation) {
+        // if the chunk is empty, lets try to fill it.
+        IVoxelChunk chunk = chunkManager.level.getChunk(chunkLocation);
+        if (chunk.isEmpty && !chunk.isLoaded) {
+          IVoxelStorage voxelData = chunkManager.generateVoxelDataForChunk(chunkLocation);
+          chunkManager.level.chunkDataStorage.setChunkVoxelData(chunkLocation, voxelData);
         }
       }
     }
@@ -328,15 +274,6 @@ namespace MeepTech.Voxel.Collections.Level.Management {
       }
 
       /// <summary>
-      /// Get the child job
-      /// </summary>
-      /// <param name="chunkColumnLocation"></param>
-      /// <returns></returns>
-      protected override IThreadedJob getChildJob(Coordinate chunkColumnLocation) {
-        return new JUnloadChunkToFile(this, chunkColumnLocation);
-      }
-
-      /// <summary>
       /// If the chunk never finished loading, we should not save it
       /// </summary>
       /// <param name="chunkLocation"></param>
@@ -347,31 +284,20 @@ namespace MeepTech.Voxel.Collections.Level.Management {
       }
 
       /// <summary>
-      /// A Job for un-loading the data for a column of chunks into a serialized file
+      /// sort items by the focus area they're in
       /// </summary>
-      class JUnloadChunkToFile : QueueTaskChildJob<JUnloadChunks, Coordinate> {
+      protected override float getPriority(Coordinate chunkLocation) {
+        return chunkManager.getClosestFocusDistance(chunkLocation, 1.5f);
+      }
 
-        /// <summary>
-        /// Make a new job
-        /// </summary>
-        /// <param name="level"></param>
-        /// <param name="chunkColumnLocation"></param>
-        /// <param name="resourcePool"></param>
-        internal JUnloadChunkToFile(
-          JUnloadChunks jobManager,
-          Coordinate chunkColumnLocation
-        ) : base(chunkColumnLocation, jobManager) {
-          threadName = "Unload chunk to file: " + queueItem.ToString();
-        }
-
-        /// <summary>
-        /// Threaded function, serializes this chunks voxel data and removes it from the level
-        /// </summary>
-        protected override void doWork(Coordinate chunkLocation) {
-          jobManager.chunkManager.saveChunkDataToFile(chunkLocation);
-          jobManager.chunkManager.level.chunkDataStorage.removeChunkVoxelData(chunkLocation);
-          jobManager.chunkManager.level.chunkDataStorage.removeChunkMesh(chunkLocation);
-        }
+      /// <summary>
+      /// Save the chunk data to file
+      /// </summary>
+      /// <param name="queueItem"></param>
+      protected override void childJob(Coordinate chunkLocation) {
+        chunkManager.saveChunkDataToFile(chunkLocation);
+        chunkManager.level.chunkDataStorage.removeChunkVoxelData(chunkLocation);
+        chunkManager.level.chunkDataStorage.removeChunkMesh(chunkLocation);
       }
     }
   }

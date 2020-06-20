@@ -24,6 +24,16 @@ namespace MeepTech.Jobs {
     /// </summary>
     ConcurrentDictionary<QueueItemType, bool> runningChildJobs;
 
+    ///// CONSTRUCTORS
+    
+    public PriorityQueueManagerJob() {
+      queue = new ConcurrentPriorityQueue<PriorityType, QueueItemType>();
+      canceledItems = new ConcurrentDictionary<QueueItemType, bool>();
+      runningChildJobs = new ConcurrentDictionary<QueueItemType, bool>();
+    }
+
+    ///// PUBLIC FUNCTIONS
+
     /// <summary>
     /// Add a bunch of objects to the queue for processing
     /// </summary>
@@ -58,12 +68,22 @@ namespace MeepTech.Jobs {
     }
 
     /// <summary>
+    /// Get all the queue items in an array
+    /// </summary>
+    /// <returns></returns>
+    public QueueItemType[] getAllQueuedItems() {
+      return queue.ToArray().Select(item => item.Value).ToArray();
+    }
+
+    /// <summary>
     /// Get all the items this job manager is currently running on
     /// </summary>
     /// <returns></returns>
     public QueueItemType[] getAllItemsWithRunningJobs() {
       return runningChildJobs.Keys.ToArray();
     }
+
+    ///// INTERNAL FUNCTIONS
 
     /// <summary>
     /// Get the priority for the given queue item
@@ -95,6 +115,8 @@ namespace MeepTech.Jobs {
     protected virtual bool itemIsReady(QueueItemType queueItem) {
       return true;
     }
+
+    ///// SUB FUNCTIONS
 
     /// <summary>
     /// Run the function on the queue
@@ -156,9 +178,7 @@ namespace MeepTech.Jobs {
     /// </summary>
     /// <param name="queueItem"></param>
     void queueJobFor(QueueItemType queueItem) {
-      ThreadPool.QueueUserWorkItem(new WaitCallback((state) 
-        => runChildJob(queueItem)
-      ));
+      ThreadPool.QueueUserWorkItem(state => runChildJob(queueItem) , null);
     }
   }
 }

@@ -118,18 +118,8 @@ namespace MeepTech.Voxel.Collections.Level.Management {
       /// Create a new job, linked to the level
       /// </summary>
       /// <param name="level"></param>
-      public JGenerateChunkMeshes(LoadedChunkMeshDataResolutionAperture manager) : base(manager, 25) {
+      public JGenerateChunkMeshes(LoadedChunkMeshDataResolutionAperture manager) : base(manager) {
         threadName = "Generate Chunk Mesh Manager";
-      }
-
-      /// <summary>
-      /// get the child job given the values
-      /// </summary>
-      /// <param name="chunkLocation"></param>
-      /// <param name="parentCancelationSources"></param>
-      /// <returns></returns>
-      protected override IThreadedJob getChildJob(Coordinate chunkLocation) {
-        return new JGenerateChunkMesh(this, chunkLocation);
       }
 
       /// <summary>
@@ -164,48 +154,31 @@ namespace MeepTech.Voxel.Collections.Level.Management {
       }
 
       /// <summary>
-      /// sort items by the focus area they're in?
+      /// sort items by the focus area they're in
       /// </summary>
-      protected override void sortQueue() {
-        chunkManager.sortByFocusDistance(ref queue);
+      protected override float getPriority(Coordinate chunkLocation) {
+        return chunkManager.getClosestFocusDistance(chunkLocation);
       }
 
       /// <summary>
-      /// Child job for doing work on the chunk columns
+      /// Mesh the chunk
       /// </summary>
-      protected class JGenerateChunkMesh : QueueTaskChildJob<JGenerateChunkMeshes, Coordinate> {
-
-        /// <summary>
-        /// Make a new job
-        /// </summary>
-        /// <param name="level"></param>
-        /// <param name="chunkLocation"></param>
-        internal JGenerateChunkMesh(
-          JGenerateChunkMeshes jobManager,
-          Coordinate chunkLocation
-        ) : base(chunkLocation, jobManager) {
-          threadName = "Generate Mesh on Chunk: " + queueItem.ToString();
-        }
-
-        /// <summary>
-        /// generate the chunk mesh if the level doesn't have it yet.
-        /// </summary>
-        protected override void doWork(Coordinate chunkLocation) {
-          // if we don't have a mesh yet, generate one
-          if (!jobManager.chunkManager.level.chunkDataStorage.containsChunkMesh(chunkLocation)) {
-            IMesh mesh = jobManager.chunkManager.generateMeshDataForChunk(chunkLocation);
-            jobManager.chunkManager.level.chunkDataStorage.setChunkMesh(chunkLocation, mesh);
-            World.EventSystem.notifyChannelOf(
-              new ChunkMeshLoadingFinishedEvent(chunkLocation),
-              Evix.EventSystems.WorldEventSystem.Channels.ChunkActivationUpdates
-            );
+      /// <param name="chunkLocation"></param>
+      protected override void childJob(Coordinate chunkLocation) {
+        // if we don't have a mesh yet, generate one
+        if (!chunkManager.level.chunkDataStorage.containsChunkMesh(chunkLocation)) {
+          IMesh mesh = chunkManager.generateMeshDataForChunk(chunkLocation);
+          chunkManager.level.chunkDataStorage.setChunkMesh(chunkLocation, mesh);
+          World.EventSystem.notifyChannelOf(
+            new ChunkMeshLoadingFinishedEvent(chunkLocation),
+            Evix.EventSystems.WorldEventSystem.Channels.ChunkActivationUpdates
+          );
           // if we already have a mesh, just send off the finished loading notification
-          } else {
-            World.EventSystem.notifyChannelOf(
-              new ChunkMeshLoadingFinishedEvent(chunkLocation),
-              Evix.EventSystems.WorldEventSystem.Channels.ChunkActivationUpdates
-            );
-          }
+        } else {
+          World.EventSystem.notifyChannelOf(
+            new ChunkMeshLoadingFinishedEvent(chunkLocation),
+            Evix.EventSystems.WorldEventSystem.Channels.ChunkActivationUpdates
+          );
         }
       }
     }

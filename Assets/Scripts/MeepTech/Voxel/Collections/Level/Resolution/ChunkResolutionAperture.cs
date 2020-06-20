@@ -149,20 +149,19 @@ namespace MeepTech.Voxel.Collections.Level.Management {
     protected abstract void addChunksToUnload(Coordinate[] chunkLocations);
 
     /// <summary>
-    /// Sort the list of chunk locations by their distance to the level's focuses.
+    /// Get the distance value of the closest focus
     /// </summary>
-    /// <param name="chunkLocations"></param>
+    /// <param name="chunkLocation"></param>
+    /// <param name="yWeightMultiplier">A multiplier to flatten the Y value, for sorting purposes</param>
     /// <returns></returns>
-    protected void sortByFocusDistance(ref List<Coordinate> chunkLocations, float yWeightMultiplier = 5f) {
-      chunkLocations = chunkLocations.OrderBy(chunkLocation => {
-        float closestFocusDistance = float.MaxValue;
-        level.forEachFocus(focus => {
-          float focusDistance = focus.chunkLocation.distanceYFlattened(chunkLocation, yWeightMultiplier);
-          closestFocusDistance = focusDistance < closestFocusDistance ? focusDistance : closestFocusDistance;
-        });
+    protected float getClosestFocusDistance(Coordinate chunkLocation, float yWeightMultiplier = 5f) {
+      float closestFocusDistance = float.MaxValue;
+      level.forEachFocus(focus => {
+        float focusDistance = focus.chunkLocation.distanceYFlattened(chunkLocation, yWeightMultiplier);
+        closestFocusDistance = focusDistance < closestFocusDistance ? focusDistance : closestFocusDistance;
+      });
 
-        return closestFocusDistance;
-      }).ToList();
+      return closestFocusDistance;
     }
 
     ///// SUB FUNCTIONS
