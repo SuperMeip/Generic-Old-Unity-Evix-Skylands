@@ -124,9 +124,8 @@ namespace MeepTech.Jobs {
     /// <param name="queueItem"></param>
     /// <returns></returns>
     bool itemIsCanceled(QueueItemType queueItem) {
-      if (canceledItems.TryGetValue(queueItem, out bool isCanceled)) {
-        // if it has a cancelation token stored, and that token is true, lets try to switch it off, and then equeue the current item from the queue.
-        canceledItems.TryRemove(queueItem, out _);
+      if (canceledItems.TryRemove(queueItem, out _)) {
+        // if it had a cancelation token stored, it's canceled
         return true;
       }
 
