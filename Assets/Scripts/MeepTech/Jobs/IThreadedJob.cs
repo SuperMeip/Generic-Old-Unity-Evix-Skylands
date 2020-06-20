@@ -25,17 +25,5 @@ namespace MeepTech.Jobs {
     /// Start the job
     /// </summary>
     void start();
-
-    /// <summary>
-    /// Allows you to easily wait in a coroutine for the thread to finish. Just use:
-    ///  yield return StartCoroutine(myJob.WaitFor());
-    /// </summary>
-    /// <returns></returns>
-    IEnumerator waitFor();
-
-    /// <summary>
-    /// Abort the job
-    /// </summary>
-    void abort();
   }
 }

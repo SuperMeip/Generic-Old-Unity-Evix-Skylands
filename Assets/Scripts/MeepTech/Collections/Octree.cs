@@ -1,7 +1,8 @@
-﻿using System;
+﻿using MeepTech.Voxel;
+using System;
 using System.Collections.Generic;
 
-namespace MeepTech.Voxel.Collections.Storage {
+namespace MeepTech.Collections {
 
   public class Octree<StoredType> {
 

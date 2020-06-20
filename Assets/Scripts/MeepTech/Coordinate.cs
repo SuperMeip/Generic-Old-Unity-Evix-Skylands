@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using System.Runtime.Serialization;
 
-namespace MeepTech.Voxel {
+namespace MeepTech {
 
   /// <summary>
   /// Direction constants
